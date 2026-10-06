@@ -71,9 +71,10 @@ function GemExperience() {
   const [view, setView] = useState<View>("opening");
   const [discoveries, setDiscoveries] = useState<Knowledge[]>([]);
   const [scanning, setScanning] = useState(false);
+  const [scanIndex, setScanIndex] = useState(0);
   const [reaction, setReaction] = useState<Knowledge | null>(null);
   const [templeOpen, setTempleOpen] = useState(false);
-  const artifact = artifacts[discoveries.length % artifacts.length];
+  const artifact = artifacts[scanIndex] ?? artifacts[0];
   const progress = Math.round((discoveries.length / artifacts.length) * 100);
 
   useEffect(() => {
@@ -90,6 +91,7 @@ function GemExperience() {
         scanning={scanning}
         onBack={() => setView("city")}
         onScan={() => {
+          setScanIndex(discoveries.length % artifacts.length);
           setScanning(true);
           window.setTimeout(() => {
             setScanning(false);
