@@ -45,8 +45,10 @@ type Artifact = {
   icon: LucideIcon;
 };
 
+const firstArtifact: Artifact = { name: "Ancient Irrigation Tool", knowledge: "Agriculture", detail: "Egyptians controlled water and made the land grow.", icon: Wheat };
+
 const artifacts: Artifact[] = [
-  { name: "Ancient Irrigation Tool", knowledge: "Agriculture", detail: "Egyptians controlled water and made the land grow.", icon: Wheat },
+  firstArtifact,
   { name: "Temple Relief", knowledge: "Religion", detail: "Belief gave purpose to places, rituals and communities.", icon: Landmark },
   { name: "Stone Column Fragment", knowledge: "Architecture", detail: "Stone became structures built to outlast generations.", icon: Building2 },
   { name: "Papyrus Fragment", knowledge: "Writing", detail: "Knowledge could be recorded, shared and preserved.", icon: ScrollText },
@@ -74,7 +76,7 @@ function GemExperience() {
   const [scanIndex, setScanIndex] = useState(0);
   const [reaction, setReaction] = useState<Knowledge | null>(null);
   const [templeOpen, setTempleOpen] = useState(false);
-  const artifact = artifacts[scanIndex] ?? artifacts[0];
+  const artifact = artifacts[scanIndex] ?? firstArtifact;
   const progress = Math.round((discoveries.length / artifacts.length) * 100);
 
   useEffect(() => {
