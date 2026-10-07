@@ -167,29 +167,14 @@ function CityHeader({ progress, onMemory }: { progress: number; onMemory: () => 
   );
 }
 
-function LivingCity({ discoveries, onTemple }: { discoveries: Knowledge[]; onTemple?: () => void }) {
-  const has = (item: Knowledge) => discoveries.includes(item);
-  const templePhase = has("Writing") ? "complete" : has("Architecture") ? "building" : has("Religion") ? "promise" : "hidden";
+function LivingCity({ discoveries, onTemple, focus, still }: { discoveries: Knowledge[]; onTemple?: () => void; focus?: Knowledge | null; still?: boolean }) {
   return (
-    <div className="living-city" data-farms={has("Agriculture")} data-temple={templePhase} data-trade={has("Trade")}>
-      <div className="sun-disc" />
-      <div className="desert-ridge ridge-one" /><div className="desert-ridge ridge-two" />
-      <div className="nile"><div className="nile-current" /><div className="boat"><span /></div></div>
-      <div className="island">
-        <div className="path path-one" /><div className="path path-two" />
-        <div className="house house-one"><i /></div><div className="house house-two"><i /></div><div className="house house-three"><i /></div>
-        <div className="palm palm-one"><i /><b /></div><div className="palm palm-two"><i /><b /></div>
-        <div className="citizen citizen-one" /><div className="citizen citizen-two" />
-        <div className="fields"><span /><span /><span /><span /></div>
-        <div className="canal" /><div className="farmer farmer-one" /><div className="farmer farmer-two" />
-        <button className="temple" onClick={onTemple} aria-label="View temple knowledge">
-          <span className="temple-roof" /><span className="temple-columns"><i /><i /><i /><i /></span><b className="temple-glow" />
-        </button>
-        <div className="future-structure future-one" /><div className="future-structure future-two" />
-        <div className="scribes"><i /><i /></div>
-        <div className="market"><i /><i /><i /></div>
-      </div>
-      <div className="sand-haze" />
+    <div className="living-city">
+      <ClientOnly fallback={null}>
+        <Suspense fallback={null}>
+          <CityScene3D discoveries={discoveries} onTemple={onTemple} focus={focus} still={still} />
+        </Suspense>
+      </ClientOnly>
     </div>
   );
 }
