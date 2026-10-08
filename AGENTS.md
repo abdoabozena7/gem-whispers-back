@@ -10,3 +10,6 @@
 <!-- LOVABLE:END -->
 
 - Keep the GEM prototype as a single state-driven home-route experience because its transitions are one continuous museum loop, not separate shareable pages.
+- All visitor-facing copy lives in src/lib/i18n.ts and renders as hieroglyphs until the language is decoded, so the translation reveal stays consistent across screens.
+- AI problem/hint text comes from one server function with static fallbacks, so the experience never blocks on the AI.
+- Journey progress persists in browser localStorage only, so visitors resume without accounts.
