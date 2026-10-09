@@ -13,3 +13,4 @@
 - All visitor-facing copy lives in src/lib/i18n.ts and renders as hieroglyphs until the language is decoded, so the translation reveal stays consistent across screens.
 - AI problem/hint text comes from one server function with static fallbacks, so the experience never blocks on the AI.
 - Journey progress persists in browser localStorage only, so visitors resume without accounts.
+- Hint progression uses a shared bounded level helper and immediately available localized clues; AI may personalize early clues but the final clue stays deterministic so visitors always find the matching artifact.
