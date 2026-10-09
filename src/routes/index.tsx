@@ -9,10 +9,11 @@ import { lazy, Suspense, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { getRiddle } from "@/lib/ai/riddle.functions";
 import {
-  artifactText, fallbackProblem, knowledgeName, LANGS, toGlyphs, tr,
+  artifactText, fallbackHints, fallbackProblem, knowledgeName, LANGS, toGlyphs, tr,
   type Age, type Key, type Knowledge, type Lang,
 } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
+import { nextHintLevel } from "@/lib/hint-levels";
 
 const CityScene3D = lazy(() => import("@/components/CityScene3D"));
 
@@ -281,12 +282,11 @@ function NeedScreen({ ctx, need, age, onBack, onDiscover }: { ctx: { L: Lang }; 
   const riddle = useServerFn(getRiddle);
   const [problem, setProblem] = useState<string | null>(null);
   const [hints, setHints] = useState<string[]>([]);
-  const [busy, setBusy] = useState(false);
-  const langName = LANGS.find((l) => l.id === L)!.ai;
+  const langName = LANGS.find((l) => l.id === L)?.ai ?? "English";
 
   useEffect(() => {
     if (!need) return;
-    const key = `gem-riddle-${need}-${L}-${age}`;
+    const key = `gem-riddle-easy-v3-${need}-${L}-${age}`;
     const cached = sessionStorage.getItem(key);
     if (cached) { setProblem(cached); return; }
     let alive = true;
@@ -297,30 +297,36 @@ function NeedScreen({ ctx, need, age, onBack, onDiscover }: { ctx: { L: Lang }; 
   }, [need, L, age]);
 
   if (!need) return <MemoryRedirect onBack={onBack} />;
-  const askHint = async () => {
-    setBusy(true);
-    try {
-      const r = await riddle({ data: { knowledge: need, language: langName, age, mode: "hint", hintLevel: hints.length + 1 } });
-      setHints((h) => [...h, r.text]);
-    } catch {
-      const fb = [artifactText[need].detail[L], `${artifactText[need].name[L]}`];
-      setHints((h) => [...h, fb[Math.min(h.length, fb.length - 1)]]);
-    }
-    setBusy(false);
+  const level = nextHintLevel(hints.length);
+  const askHint = () => {
+    if (!level) return;
+    // Show the concrete clue immediately. AI can tailor it without blocking play.
+    const index = level - 1;
+    const clue = fallbackHints[need][L][index];
+    setHints((h) => [...h, clue]);
+    if (level === 3) return; // The final clue always names the exact scanned artifact.
+    void riddle({ data: { knowledge: need, language: langName, age, mode: "hint", hintLevel: level } })
+      .then((r) => setHints((h) => h.map((text, i) => i === index ? r.text : text)))
+      .catch(() => { /* the immediately available clue stays visible */ });
   };
 
   return (
     <main className="focus-screen need-screen">
-      <header className="top-bar"><button onClick={onBack} aria-label="Back"><ArrowLeft /></button><strong>{tr("problem", L)}</strong><span /></header>
-      <div className="need-visual"><div className="need-rings" /><span className="need-mystery">?</span></div>
+      <header className="top-bar"><Button variant="ghost" size="icon" onClick={onBack} aria-label="Back"><ArrowLeft /></Button><strong>{tr("problem", L)}</strong><span /></header>
+      <div className="need-visual"><span className="need-mystery">?</span></div>
       <div className="need-copy">
         <p className="eyebrow">{tr("peopleSay", L)}</p>
-        <p className="problem-text">{problem ?? tr("thinking", L)}</p>
+        <p className="problem-text">{problem ?? fallbackProblem[need][L]}</p>
         <p className="problem-q">{tr("whatSolves", L)}</p>
       </div>
-      {hints.map((h, i) => <div key={i} className="hint-card"><Lightbulb /><span><small>{tr("hintN", L)} {i + 1}</small>{h}</span></div>)}
-      {hints.length < 3 && (
-        <Button variant="outline" className="hint-button" disabled={busy || !problem} onClick={askHint}><Lightbulb /> {busy ? tr("thinking", L) : tr("hint", L)}</Button>
+      <div className="hint-levels" aria-label={tr("hint", L)}>
+        {(["hintUse", "hintLook", "hintAnswer"] as const).map((key, i) => <span key={key} className={hints.length > i ? "is-revealed" : ""}><b>{i + 1}</b><small>{tr(key, L)}</small></span>)}
+      </div>
+      <div className="hint-list" aria-live="polite">
+        {hints.map((h, i) => <div key={i} className="hint-card"><Lightbulb /><span><small>{tr("hintN", L)} {i + 1} · {tr((["hintUse", "hintLook", "hintAnswer"] as const)[i], L)}</small>{h}</span></div>)}
+      </div>
+      {level && (
+        <Button variant="outline" className="hint-button" onClick={askHint}><Lightbulb /> {tr(hints.length ? "nextHint" : "hint", L)} · {level}/3</Button>
       )}
       <Button variant="discovery" size="museum" className="w-full" onClick={onDiscover}><ScanLine /> {tr("startDiscovery", L)}</Button>
     </main>

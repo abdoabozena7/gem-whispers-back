@@ -6,7 +6,7 @@ const Input = z.object({
   language: z.string(),
   age: z.string(),
   mode: z.enum(["problem", "hint"]),
-  hintLevel: z.number(),
+  hintLevel: z.number().int().min(0).max(3),
 });
 
 /** Turns a missing knowledge area into an age- and language-appropriate problem or hint. */
@@ -24,11 +24,11 @@ export const getRiddle = createServerFn({ method: "POST" })
     });
     const task =
       data.mode === "problem"
-        ? `Describe, as a vivid everyday PROBLEM the people of an ancient Nile settlement are suffering, the situation caused by missing ${data.knowledge} knowledge. Never name the knowledge "${data.knowledge}" or any direct synonym. End with a short curious question. Max 2 sentences.`
-        : `Give hint #${data.hintLevel} (1 = gentle, 3 = almost the answer) to help a museum visitor guess which kind of artifact in the Grand Egyptian Museum would solve the problem caused by missing ${data.knowledge} knowledge. Describe what the object looks like or where it might be displayed. At level 3 you may name the object type. One sentence.`;
+        ? `Describe one simple everyday PROBLEM caused by missing ${data.knowledge} knowledge in an ancient Nile settlement. Make it easy to understand while walking: concrete people, a practical obstacle, no metaphors, no tragic or frightening scenarios. Never name ${data.knowledge} or its synonyms. End with a short question. At most 2 short sentences, about 30 words total.`
+        : `Give museum clue level ${data.hintLevel} for missing ${data.knowledge}. The matching artifacts are Agriculture: Ancient Irrigation Tool; Religion: Temple Relief; Architecture: Stone Column Fragment; Writing: Papyrus Fragment; Government: Royal Seal; Trade: Trading Vessel; Medicine: Medical Papyrus; Military: Ancient Weapon. Level 1: say ONLY what people can DO with the object, starting "Look for something that helps people...". Level 2: describe its visible shape and material, clearly more specific than level 1, without naming the artifact or knowledge. Level 3: name the matching artifact explicitly. One practical short sentence, maximum 25 words. Never invent gallery locations or displays. For Arabic use friendly Egyptian phrasing like "دور على حاجة يقدروا ..." rather than abstract riddles.`;
     const result = streamText({
       model: provider.responses("openai/gpt-6-astra"),
-      system: `You are the voice of a lost Ancient Egyptian civilization speaking to a museum visitor. Write ONLY in ${data.language}. The visitor's age group is ${data.age}: adapt vocabulary, tone and sentence length to that age. Plain text, no markdown, no quotes.`,
+      instructions: `You are the friendly voice of an Ancient Egyptian settlement speaking to a museum visitor. Write ONLY in ${data.language}. Age group: ${data.age}. For children use very short familiar words; for teens and adults stay concise and practical. Make the experience easy and encouraging. Plain text, no markdown, no quotes.`,
       prompt: task,
       providerOptions: { openai: { store: false, forceReasoning: true, reasoningEffort: "low", reasoningSummary: "auto", include: ["reasoning.encrypted_content"] } },
     });
