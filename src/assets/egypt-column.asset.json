@@ -1,11 +1,11 @@
 {
-  "version": 1,
   "asset_id": "80a90176-17c4-43e3-a8cc-6ae9152b4734",
-  "project_id": "949e49e4-e7d8-4e80-a810-caa2dcdc3799",
-  "url": "/__l5e/assets-v1/80a90176-17c4-43e3-a8cc-6ae9152b4734/egypt-column.glb",
-  "r2_key": "a/v1/949e49e4-e7d8-4e80-a810-caa2dcdc3799/80a90176-17c4-43e3-a8cc-6ae9152b4734/egypt-column.glb",
-  "original_filename": "egypt-column.glb",
-  "size": 636964,
   "content_type": "model/gltf-binary",
-  "created_at": "2026-10-10T08:31:57Z"
+  "created_at": "2026-10-10T08:31:57Z",
+  "original_filename": "egypt-column.glb",
+  "project_id": "6b2eff63-d6e8-491a-a726-b11f2ef094ed",
+  "r2_key": "a/v1/6b2eff63-d6e8-491a-a726-b11f2ef094ed/80a90176-17c4-43e3-a8cc-6ae9152b4734/egypt-column.glb",
+  "size": 636964,
+  "url": "/__l5e/assets-v1/80a90176-17c4-43e3-a8cc-6ae9152b4734/egypt-column.glb",
+  "version": 1
 }
