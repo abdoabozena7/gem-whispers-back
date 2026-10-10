@@ -134,3 +134,22 @@ button { font: inherit; }
 .hint-button{width:100%;margin-bottom:12px;min-height:48px}
 .reset-link{display:block;margin:0 auto 24px;font-size:12px;color:var(--muted-foreground);text-decoration:underline}
 .living-city canvas{touch-action:pan-y}
+.need-screen .need-visual{width:64px;height:64px;margin:18px auto 12px;flex:none}
+.need-screen .need-mystery{font-size:44px}
+.hint-levels{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));width:100%;gap:10px;margin:22px 0 16px}
+.hint-levels>span{display:grid;justify-items:center;gap:8px;color:var(--muted-foreground);border-top:2px solid var(--border);padding-top:10px}
+.hint-levels b{width:28px;height:28px;border:1px solid var(--border);border-radius:50%;display:grid;place-items:center;font-size:12px}
+.hint-levels small{font-size:11px;line-height:1.4}
+.hint-levels .is-revealed{color:var(--gold);border-color:var(--gold)}
+.hint-levels .is-revealed b{background:var(--primary);color:var(--primary-foreground)}
+.hint-list{width:100%;text-align:start}
+.hint-card{width:100%;border-radius:7px;background:var(--card)}
+.need-screen>.w-full:last-child{margin-top:auto;flex-shrink:0}
+.need-screen .top-bar{width:100%;flex:none}
+.need-screen{overflow:visible;gap:4px}
+.reaction-banner{inset:auto 16px 14px;transform:none;padding:12px 16px;pointer-events:none;box-shadow:var(--shadow-discovery)}
+.reaction-banner>svg{display:none}
+.reaction-banner strong{font-size:16px;margin:4px 0}
+.city-actions{display:grid;gap:12px}
+[dir="rtl"] .top-bar svg,[dir="rtl"] .need-strip>svg{transform:scaleX(-1)}
+.opening-city .living-city{filter:saturate(.8) brightness(.9)}

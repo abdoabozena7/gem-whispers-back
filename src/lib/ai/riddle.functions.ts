@@ -13,14 +13,17 @@ const Input = z.object({
 export const getRiddle = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => Input.parse(input))
   .handler(async ({ data }) => {
-    const apiKey = process.env.LOVABLE_API_KEY;
+    const apiKey = process.env['LOVABLE_API_KEY'];
     if (!apiKey) throw new Error("AI is not configured");
     const { createOpenAI } = await import("@ai-sdk/openai");
     const { streamText } = await import("ai");
+    const { createLovableAiGatewayRunIdFetch } = await import("./run-id.server.ts");
+    const run = createLovableAiGatewayRunIdFetch();
     const provider = createOpenAI({
       baseURL: "https://ai.gateway.lovable.dev/v1",
       apiKey,
       headers: { "Lovable-API-Key": apiKey, "X-Lovable-AIG-SDK": "vercel-ai-sdk" },
+      fetch: run.fetch,
     });
     const task =
       data.mode === "problem"
