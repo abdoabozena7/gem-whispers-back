@@ -4,16 +4,17 @@ import {
   ArrowLeft, Building2, Check, ChevronRight, CircleDot, Crown, HeartPulse, Landmark, Lightbulb,
   ScanLine, ScrollText, Shield, Ship, Sparkles, Wheat, type LucideIcon,
 } from "lucide-react";
-import { lazy, Suspense, useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { getRiddle } from "@/lib/ai/riddle.functions";
 import {
-  artifactText, fallbackHints, fallbackProblem, knowledgeName, LANGS, toGlyphs, tr,
+  artifactAlt, artifactText, fallbackHints, fallbackProblem, knowledgeName, LANGS, toGlyphs, tr,
   type Age, type Key, type Knowledge, type Lang,
 } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { nextHintLevel } from "@/lib/hint-levels";
+import { playDecode, playReact, playRestore, playScan, playTemple } from "@/lib/sounds";
 
 const CityScene3D = lazy(() => import("@/components/CityScene3D"));
 
@@ -52,8 +53,10 @@ function GemExperience() {
   const [welcome, setWelcome] = useState(false);
   const [scanning, setScanning] = useState(false);
   const [current, setCurrent] = useState<Knowledge>("Agriculture");
+  const [scanCount, setScanCount] = useState(0);
   const [reaction, setReaction] = useState<Knowledge | null>(null);
   const [templeOpen, setTempleOpen] = useState(false);
+  const templeFanfared = useRef(false);
 
   // Resume a saved journey (client only, after hydration).
   useEffect(() => {
@@ -87,6 +90,15 @@ function GemExperience() {
     return () => window.clearTimeout(t);
   }, [welcome]);
 
+  // Golden fanfare the one time the temple completes (Religion + Architecture + Writing).
+  useEffect(() => {
+    if (templeFanfared.current) return;
+    if (discoveries.includes("Writing") && discoveries.includes("Religion") && discoveries.includes("Architecture")) {
+      templeFanfared.current = true;
+      playTemple();
+    }
+  }, [discoveries]);
+
   const L: Lang = lang ?? "en";
   const decoded = lang !== null;
   const need = ORDER.find((k) => !discoveries.includes(k)) ?? null;
@@ -104,17 +116,20 @@ function GemExperience() {
   } else if (view === "rosettaScan") {
     body = (
       <ScanScreen ctx={ctx} scanning={scanning} onBack={() => setView("locked")} onScan={() => {
+        playScan();
         setScanning(true);
         window.setTimeout(() => { setScanning(false); setView("rosetta"); }, 1400);
       }} />
     );
   } else if (view === "rosetta") {
-    body = <Rosetta onPick={(l) => { setLang(l); window.setTimeout(() => setView("age"), 1600); }} picked={lang} />;
+    body = <Rosetta onPick={(l) => { playDecode(); setLang(l); window.setTimeout(() => setView("age"), 1600); }} picked={lang} />;
   } else if (view === "age") {
     body = <AgePick ctx={ctx} onPick={(a) => { setAge(a); setView("city"); }} />;
   } else if (view === "scan") {
     body = (
       <ScanScreen ctx={ctx} scanning={scanning} onBack={() => setView("city")} onScan={() => {
+        playScan();
+        setScanCount((c) => c + 1);
         setCurrent(need ?? ORDER[discoveries.length % ORDER.length] ?? "Agriculture");
         setScanning(true);
         window.setTimeout(() => { setScanning(false); setView("artifact"); }, 1200);
@@ -122,9 +137,9 @@ function GemExperience() {
     );
   } else if (view === "artifact") {
     body = (
-      <ArtifactReveal ctx={ctx} k={current} restored={discoveries.includes(current)}
-        onRestore={() => setDiscoveries((d) => (d.includes(current) ? d : [...d, current]))}
-        onChanged={() => { setReaction(current); setView("city"); }} />
+      <ArtifactReveal ctx={ctx} k={current} alt={scanCount % 2 === 1} restored={discoveries.includes(current)}
+        onRestore={() => { playRestore(); setDiscoveries((d) => (d.includes(current) ? d : [...d, current])); }}
+        onChanged={() => { playReact(); setReaction(current); setView("city"); }} />
     );
   } else if (view === "need") {
     body = <NeedScreen ctx={ctx} need={need} age={age ?? "adult"} onBack={() => setView("city")} onDiscover={() => setView("scan")} />;
@@ -248,17 +263,18 @@ function ScanScreen({ ctx, scanning, onBack, onScan }: { ctx: { L: Lang; decoded
   );
 }
 
-function ArtifactReveal({ ctx, k, restored, onRestore, onChanged }: { ctx: { L: Lang }; k: Knowledge; restored: boolean; onRestore: () => void; onChanged: () => void }) {
+function ArtifactReveal({ ctx, k, alt, restored, onRestore, onChanged }: { ctx: { L: Lang }; k: Knowledge; alt: boolean; restored: boolean; onRestore: () => void; onChanged: () => void }) {
   const Icon = icons[k];
   const { L } = ctx;
+  const text = alt ? artifactAlt[k] : artifactText[k];
   return (
     <main className="artifact-screen">
       <div className="artifact-aura"><span /><span /><span /></div>
       <div className="artifact-object"><Icon /></div>
       <p className="eyebrow">{tr("found", L)}</p>
-      <h1>{artifactText[k].name[L]}</h1>
+      <h1>{text.name[L]}</h1>
       <div className="knowledge-lockup"><Icon /><span><small>{tr("knowledge", L)}</small><strong>{knowledgeName[k][L]}</strong></span></div>
-      <p className="artifact-detail">{artifactText[k].detail[L]}</p>
+      <p className="artifact-detail">{text.detail[L]}</p>
       {!restored ? (
         <Button variant="discovery" size="museum" className="w-full" onClick={onRestore}><Sparkles /> {tr("restore", L)} {knowledgeName[k][L]}</Button>
       ) : (
