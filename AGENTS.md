@@ -14,3 +14,4 @@
 - AI problem/hint text comes from one server function with static fallbacks, so the experience never blocks on the AI.
 - Journey progress persists in browser localStorage only, so visitors resume without accounts.
 - Hint progression uses a shared bounded level helper and immediately available localized clues; AI may personalize early clues but the final clue stays deterministic so visitors always find the matching artifact.
+- Imported Egyptian column artwork is cloned and normalized per instance inside a scene-local Suspense boundary so asset loading never hides the rest of the city.

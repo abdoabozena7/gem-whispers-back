@@ -1,11 +1,12 @@
 import { Canvas, useFrame } from "@react-three/fiber";
-import { Environment, Lightformer, Sparkles } from "@react-three/drei";
-import { useMemo, useRef, type ReactNode } from "react";
+import { Environment, Lightformer, Sparkles, useGLTF } from "@react-three/drei";
+import { Suspense, useEffect, useMemo, useRef, type ReactNode } from "react";
 import * as THREE from "three";
+import columnAsset from "@/assets/egypt-column.asset.json";
 
 export type SceneKnowledge = "Agriculture" | "Religion" | "Architecture" | "Writing" | "Trade" | "Medicine" | "Government" | "Military";
 
-type Props = { discoveries: SceneKnowledge[]; focus?: SceneKnowledge | null; onTemple?: () => void; still?: boolean };
+type Props = { discoveries: SceneKnowledge[]; focus?: SceneKnowledge | null | undefined; onTemple?: (() => void) | undefined; still?: boolean | undefined };
 
 const FOCUS_POINTS: Record<SceneKnowledge, [number, number, number]> = {
   Agriculture: [-3, 0, 2],
@@ -21,7 +22,8 @@ const FOCUS_POINTS: Record<SceneKnowledge, [number, number, number]> = {
 function makeSandTexture() {
   const c = document.createElement("canvas");
   c.width = c.height = 256;
-  const g = c.getContext("2d")!;
+  const g = c.getContext("2d");
+  if (!g) return new THREE.Texture();
   g.fillStyle = "#c9a571";
   g.fillRect(0, 0, 256, 256);
   for (let i = 0; i < 4000; i++) {
@@ -48,7 +50,8 @@ function makeSandTexture() {
 function makeFieldTexture(alive: boolean) {
   const c = document.createElement("canvas");
   c.width = c.height = 128;
-  const g = c.getContext("2d")!;
+  const g = c.getContext("2d");
+  if (!g) return new THREE.Texture();
   g.fillStyle = alive ? "#5f8a3a" : "#8a6a44";
   g.fillRect(0, 0, 128, 128);
   for (let x = 0; x < 128; x += 8) {
@@ -80,7 +83,7 @@ function Grow({ on, children, position, min = 0.001, speed = 2.2 }: { on: boolea
     ref.current.scale.set(on ? Math.max(n, 0.6 + n * 0.4) : n, n, on ? Math.max(n, 0.6 + n * 0.4) : n);
     ref.current.visible = n > 0.01;
   });
-  return <group ref={ref} position={position} scale={min}>{children}</group>;
+  return <group ref={ref} position={position ?? [0, 0, 0]} scale={min}>{children}</group>;
 }
 
 const SAND = "#d2b07a";
@@ -88,10 +91,43 @@ const BRICK = "#b48a5a";
 const STONE = "#e3cfa4";
 const GOLD = "#d6a843";
 
+function makeMasonryTexture() {
+  const c = document.createElement("canvas"); c.width = c.height = 256;
+  const g = c.getContext("2d"); if (!g) return new THREE.Texture();
+  g.fillStyle = "#e3cfa4"; g.fillRect(0, 0, 256, 256);
+  for (let row = 0; row < 8; row++) {
+    for (let col = -1; col < 5; col++) {
+      const x = col * 64 + (row % 2) * 32;
+      g.fillStyle = row % 3 ? "#dfc99e" : "#ead9b7";
+      g.fillRect(x + 1, row * 32 + 1, 62, 30);
+      g.strokeStyle = "#baa583"; g.strokeRect(x, row * 32, 64, 32);
+    }
+  }
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
+}
+
+function EgyptianColumn() {
+  const { scene } = useGLTF(columnAsset.url);
+  const object = useMemo(() => {
+    const clone = scene.clone(true);
+    const bounds = new THREE.Box3().setFromObject(clone);
+    const height = bounds.getSize(new THREE.Vector3()).y;
+    clone.scale.setScalar(1.8 / (height || 1));
+    const box = new THREE.Box3().setFromObject(clone);
+    const center = box.getCenter(new THREE.Vector3());
+    clone.position.set(-center.x, -box.min.y, -center.z);
+    clone.traverse((node) => { if (node instanceof THREE.Mesh) { node.castShadow = true; node.receiveShadow = true; } });
+    return clone;
+  }, [scene]);
+  return <primitive object={object} />;
+}
+
 function House({ p, r = 0, s = 1 }: { p: [number, number, number]; r?: number; s?: number }) {
+  const masonry = useMemo(makeMasonryTexture, []);
+  useEffect(() => () => masonry.dispose(), [masonry]);
   return (
     <group position={p} rotation-y={r} scale={s}>
-      <mesh position={[0, 0.4, 0]} castShadow receiveShadow><boxGeometry args={[1, 0.8, 0.9]} /><meshStandardMaterial color={BRICK} roughness={1} /></mesh>
+      <mesh position={[0, 0.4, 0]} castShadow receiveShadow><boxGeometry args={[1, 0.8, 0.9]} /><meshStandardMaterial color={BRICK} map={masonry} roughness={1} /></mesh>
       <mesh position={[0, 0.84, 0]} castShadow><boxGeometry args={[1.06, 0.08, 0.96]} /><meshStandardMaterial color="#9c7449" roughness={1} /></mesh>
       <mesh position={[0, 0.25, 0.46]}><boxGeometry args={[0.22, 0.4, 0.02]} /><meshStandardMaterial color="#3a2a1c" /></mesh>
     </group>
@@ -137,7 +173,8 @@ function Nile({ alive }: { alive: number }) {
   const tex = useMemo(() => {
     const c = document.createElement("canvas");
     c.width = c.height = 128;
-    const g = c.getContext("2d")!;
+    const g = c.getContext("2d");
+  if (!g) return new THREE.Texture();
     g.fillStyle = "#2f6c8f"; g.fillRect(0, 0, 128, 128);
     for (let i = 0; i < 60; i++) { g.fillStyle = "rgba(200,230,255,0.25)"; g.fillRect(Math.random() * 128, Math.random() * 128, 10, 1); }
     const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(1, 6); t.colorSpace = THREE.SRGBColorSpace; return t;
@@ -196,7 +233,7 @@ function Fields({ alive }: { alive: boolean }) {
       ))}
       {/* irrigation canal from the Nile */}
       <Grow on={alive} position={[-3.6, 0.03, 1.9]}>
-        <mesh rotation-x={-Math.PI / 2}><planeGeometry args={[2.6, 0.18]} /><meshStandardMaterial color="#3d82a8" emissive="#1d4a66" emissiveIntensity={0.4} /></mesh>
+        <mesh rotation-x={-Math.PI / 2}><planeGeometry args={[3.8, 0.22]} /><meshStandardMaterial color="#3d82a8" emissive="#1d4a66" emissiveIntensity={0.4} /></mesh>
       </Grow>
       <Grow on={alive}>
         <Person p={[-2.9, 0.03, 1.9]} color="#e8dcc0" path={0.5} speed={0.8} />
@@ -206,7 +243,9 @@ function Fields({ alive }: { alive: boolean }) {
   );
 }
 
-function Temple({ phase, onTemple }: { phase: 0 | 1 | 2 | 3; onTemple?: () => void }) {
+function Temple({ phase, onTemple }: { phase: 0 | 1 | 2 | 3; onTemple?: (() => void) | undefined }) {
+  const masonry = useMemo(makeMasonryTexture, []);
+  useEffect(() => () => masonry.dispose(), [masonry]);
   const glow = useRef<THREE.MeshStandardMaterial>(null);
   const ghost = useRef<THREE.MeshBasicMaterial>(null);
   useFrame(({ clock }) => {
@@ -222,15 +261,15 @@ function Temple({ phase, onTemple }: { phase: 0 | 1 | 2 | 3; onTemple?: () => vo
         <meshBasicMaterial ref={ghost} color={GOLD} wireframe transparent opacity={0} />
       </mesh>
       <Grow on={phase >= 1}>
-        <mesh position={[0, 0.1, 0]} receiveShadow castShadow><boxGeometry args={[3.6, 0.2, 2.4]} /><meshStandardMaterial color={STONE} /></mesh>
+        <mesh position={[0, 0.1, 0]} receiveShadow castShadow><boxGeometry args={[3.6, 0.2, 2.4]} /><meshStandardMaterial map={masonry} roughness={0.9} /></mesh>
       </Grow>
       {cols.map((x, i) => (
         <group key={x}>
-          <Grow on={phase >= 2} position={[x, 0.2, 0.8]} speed={1.2 + i * 0.25} min={phase >= 2 ? 1 : 0.001}>
-            <mesh position={[0, phase >= 3 ? 0.9 : 0.55 - (i % 2) * 0.25, 0]} castShadow>
+          <Grow on={phase >= 2} position={[x, 0.2, 0.8]} speed={1.2 + i * 0.25} min={0.001}>
+            {phase === 3 ? <Suspense fallback={null}><EgyptianColumn /></Suspense> : <mesh position={[0, 0.55 - (i % 2) * 0.25, 0]} castShadow>
               <cylinderGeometry args={[0.16, 0.18, phase >= 3 ? 1.8 : 1.1 - (i % 2) * 0.5, 10]} />
-              <meshStandardMaterial color={STONE} roughness={0.8} />
-            </mesh>
+              <meshStandardMaterial map={masonry} roughness={0.8} />
+            </mesh>}
           </Grow>
           <Grow on={phase >= 2} position={[x, 0.2, -0.8]} speed={1 + i * 0.2}>
             <mesh position={[0, phase >= 3 ? 0.9 : 0.4, 0]} castShadow>
@@ -240,9 +279,13 @@ function Temple({ phase, onTemple }: { phase: 0 | 1 | 2 | 3; onTemple?: () => vo
           </Grow>
         </group>
       ))}
+      <Grow on={phase >= 3} position={[0, 0, -0.95]}>
+        <mesh position={[0, 0.85, 0]} castShadow receiveShadow><boxGeometry args={[3.2, 1.7, 0.16]} /><meshStandardMaterial map={masonry} roughness={0.85} /></mesh>
+        <mesh position={[0, 0.95, 0.09]}><torusGeometry args={[0.27, 0.035, 8, 24]} /><meshStandardMaterial color={GOLD} metalness={0.5} roughness={0.4} /></mesh>
+      </Grow>
       {/* rubble while unfinished */}
-      {phase === 2 && [[-1.6, 1.2], [1.7, 1.3], [0.2, 1.5]].map(([x, z], i) => (
-        <mesh key={i} position={[x, 0.12, z]} rotation={[0.3, i, 0.2]} castShadow><boxGeometry args={[0.3, 0.2, 0.25]} /><meshStandardMaterial color={STONE} /></mesh>
+      {phase === 2 && ([[-1.6, 1.2], [1.7, 1.3], [0.2, 1.5]] as [number, number][]).map(([x, z], i) => (
+        <mesh key={i} position={[x, 0.12, z]} rotation={[0.3, i, 0.2]} castShadow><boxGeometry args={[0.3, 0.2, 0.25]} /><meshStandardMaterial map={masonry} roughness={0.9} /></mesh>
       ))}
       <Grow on={phase >= 3} position={[0, 2.0, 0]} speed={1.5}>
         <mesh castShadow><boxGeometry args={[3.5, 0.3, 2.3]} /><meshStandardMaterial color={STONE} /></mesh>
@@ -272,7 +315,7 @@ function Market({ on }: { on: boolean }) {
     <Grow on={on} position={[-4, 0, -2.5]}>
       {colors.map((c, i) => (
         <group key={c} position={[i * 0.8, 0, 0]}>
-          {[[-0.25, -0.2], [0.25, -0.2], [-0.25, 0.2], [0.25, 0.2]].map(([x, z], k) => (
+          {([[-0.25, -0.2], [0.25, -0.2], [-0.25, 0.2], [0.25, 0.2]] as [number, number][]).map(([x, z], k) => (
             <mesh key={k} position={[x, 0.3, z]}><cylinderGeometry args={[0.02, 0.02, 0.6]} /><meshStandardMaterial color="#5a3a22" /></mesh>
           ))}
           <mesh position={[0, 0.62, 0]} castShadow><boxGeometry args={[0.65, 0.04, 0.55]} /><meshStandardMaterial color={c} /></mesh>
@@ -327,28 +370,28 @@ function Atmosphere({ life }: { life: number }) {
     const deadFog = new THREE.Color("#8d7a62");
     const liveFog = new THREE.Color("#f2d9a8");
     const target = deadFog.clone().lerp(liveFog, life);
-    if (fog) { fog.color.lerp(target, k); fog.far = THREE.MathUtils.lerp(fog.far, 22 + life * 30, k); }
+    if (fog) { fog.color.lerp(target, k); fog.far = THREE.MathUtils.lerp(fog.far, 38 + life * 30, k); }
     (scene.background as THREE.Color | null)?.lerp(target, k);
-    if (sun.current) { sun.current.intensity = THREE.MathUtils.lerp(sun.current.intensity, 0.9 + life * 1.8, k); sun.current.color.lerp(new THREE.Color("#c9b9a0").lerp(new THREE.Color("#ffdca0"), life), k); }
-    if (amb.current) amb.current.intensity = THREE.MathUtils.lerp(amb.current.intensity, 0.35 + life * 0.4, k);
+    if (sun.current) { sun.current.intensity = THREE.MathUtils.lerp(sun.current.intensity, 1.4 + life * 1.5, k); sun.current.color.lerp(new THREE.Color("#c9b9a0").lerp(new THREE.Color("#ffdca0"), life), k); }
+    if (amb.current) amb.current.intensity = THREE.MathUtils.lerp(amb.current.intensity, 0.6 + life * 0.3, k);
   });
   return (
     <>
       <color attach="background" args={["#8d7a62"]} />
-      <fog attach="fog" args={["#8d7a62", 8, 22]} />
+      <fog attach="fog" args={["#8d7a62", 18, 38]} />
       <hemisphereLight ref={amb} args={["#fff1d6", "#8a6a44", 0.4]} />
       <directionalLight ref={sun} position={[8, 12, 6]} intensity={1} castShadow shadow-mapSize-width={1024} shadow-mapSize-height={1024} shadow-camera-left={-12} shadow-camera-right={12} shadow-camera-top={12} shadow-camera-bottom={-12} />
     </>
   );
 }
 
-function Rig({ focus, still }: { focus?: SceneKnowledge | null; still?: boolean }) {
+function Rig({ focus, still }: { focus?: SceneKnowledge | null | undefined; still?: boolean | undefined }) {
   const look = useRef(new THREE.Vector3(0, 0, 0));
   useFrame(({ camera, clock }, d) => {
     const t = clock.elapsedTime;
-    const f = focus ? FOCUS_POINTS[focus] : [0, 0, 0];
-    const zoom = focus ? 0.62 : 1;
-    const sway = still ? 0 : Math.sin(t * 0.15) * 1.6;
+    const f: [number, number, number] = focus ? FOCUS_POINTS[focus] : [-1, 0, 0];
+    const zoom = focus ? 0.74 : 1.15;
+    const sway = still ? 0 : Math.sin(t * 0.15) * 0.3;
     const target = new THREE.Vector3(f[0] + 9 * zoom + sway, 8.5 * zoom + 1, f[2] + 11 * zoom);
     const k = 1 - Math.exp(-1.6 * Math.min(d, 0.05));
     camera.position.lerp(target, k);
@@ -358,7 +401,7 @@ function Rig({ focus, still }: { focus?: SceneKnowledge | null; still?: boolean 
   return null;
 }
 
-function FocusBurst({ focus }: { focus?: SceneKnowledge | null }) {
+function FocusBurst({ focus }: { focus?: SceneKnowledge | null | undefined }) {
   if (!focus) return null;
   const p = FOCUS_POINTS[focus];
   return <Sparkles key={focus} count={60} scale={[4, 3, 4]} position={[p[0], 1.5, p[2]]} size={6} speed={1.2} color={GOLD} />;
@@ -367,7 +410,7 @@ function FocusBurst({ focus }: { focus?: SceneKnowledge | null }) {
 function Dunes() {
   return (
     <>
-      {[[-14, -14, 6], [10, -16, 8], [16, 4, 5], [-16, 10, 6]].map(([x, z, s], i) => (
+      {([[-14, -14, 6], [10, -16, 8], [16, 4, 5], [-16, 10, 6]] as [number, number, number][]).map(([x, z, s], i) => (
         <mesh key={i} position={[x, -s * 0.6, z]} scale={[1, 0.35, 1]} receiveShadow><sphereGeometry args={[s, 16, 12]} /><meshStandardMaterial color={SAND} roughness={1} /></mesh>
       ))}
     </>
@@ -394,6 +437,8 @@ export default function CityScene3D({ discoveries, focus, onTemple, still }: Pro
         <meshStandardMaterial map={sand} roughness={1} />
       </mesh>
       <Dunes />
+      <mesh rotation-x={-Math.PI / 2} position={[0, 0.018, 0.2]}><planeGeometry args={[0.55, 8]} /><meshStandardMaterial color={STONE} map={sand} roughness={1} /></mesh>
+      <mesh rotation-x={-Math.PI / 2} rotation-z={Math.PI / 2} position={[-1.2, 0.019, 1.9]}><planeGeometry args={[0.45, 6.4]} /><meshStandardMaterial color={STONE} map={sand} roughness={1} /></mesh>
       <Pyramid p={[8, 0, -12]} s={3.5} />
       <Pyramid p={[13, 0, -9]} s={2.4} />
       <Pyramid p={[3, 0, -15]} s={2} />

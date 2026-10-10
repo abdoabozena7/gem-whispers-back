@@ -115,7 +115,7 @@ function GemExperience() {
   } else if (view === "scan") {
     body = (
       <ScanScreen ctx={ctx} scanning={scanning} onBack={() => setView("city")} onScan={() => {
-        setCurrent(need ?? ORDER[discoveries.length % ORDER.length]);
+        setCurrent(need ?? ORDER[discoveries.length % ORDER.length] ?? "Agriculture");
         setScanning(true);
         window.setTimeout(() => { setScanning(false); setView("artifact"); }, 1200);
       }} />
@@ -302,7 +302,7 @@ function NeedScreen({ ctx, need, age, onBack, onDiscover }: { ctx: { L: Lang }; 
     if (!level) return;
     // Show the concrete clue immediately. AI can tailor it without blocking play.
     const index = level - 1;
-    const clue = fallbackHints[need][L][index];
+    const clue = fallbackHints[need][L][index] ?? fallbackHints[need][L][2];
     setHints((h) => [...h, clue]);
     if (level === 3) return; // The final clue always names the exact scanned artifact.
     void riddle({ data: { knowledge: need, language: langName, age, mode: "hint", hintLevel: level } })
@@ -323,7 +323,7 @@ function NeedScreen({ ctx, need, age, onBack, onDiscover }: { ctx: { L: Lang }; 
         {(["hintUse", "hintLook", "hintAnswer"] as const).map((key, i) => <span key={key} className={hints.length > i ? "is-revealed" : ""}><b>{i + 1}</b><small>{tr(key, L)}</small></span>)}
       </div>
       <div className="hint-list" aria-live="polite">
-        {hints.map((h, i) => <div key={i} className="hint-card"><Lightbulb /><span><small>{tr("hintN", L)} {i + 1} · {tr((["hintUse", "hintLook", "hintAnswer"] as const)[i], L)}</small>{h}</span></div>)}
+        {hints.map((h, i) => <div key={i} className="hint-card"><Lightbulb /><span><small>{tr("hintN", L)} {i + 1} · {tr((["hintUse", "hintLook", "hintAnswer"] as const)[i] ?? "hintAnswer", L)}</small>{h}</span></div>)}
       </div>
       {level && (
         <Button variant="outline" className="hint-button" onClick={askHint}><Lightbulb /> {tr(hints.length ? "nextHint" : "hint", L)} · {level}/3</Button>
