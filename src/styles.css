@@ -153,3 +153,4 @@ button { font: inherit; }
 .city-actions{display:grid;gap:12px}
 [dir="rtl"] .top-bar svg,[dir="rtl"] .need-strip>svg{transform:scaleX(-1)}
 .opening-city .living-city{filter:saturate(.8) brightness(.9)}
+@media(min-width:700px){.app-shell,.focus-screen,.artifact-screen,.opening-screen{min-height:min(100svh,950px)}.app-shell{height:min(100svh,950px)}}
