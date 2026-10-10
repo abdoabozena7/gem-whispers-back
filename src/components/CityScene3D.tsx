@@ -1,8 +1,9 @@
 import { Canvas, useFrame } from "@react-three/fiber";
-import { Environment, Lightformer, Sparkles, useGLTF } from "@react-three/drei";
+import { Environment, Lightformer, Sparkles, useGLTF, useTexture } from "@react-three/drei";
 import { Suspense, useEffect, useMemo, useRef, type ReactNode } from "react";
 import * as THREE from "three";
 import columnAsset from "@/assets/egypt-column.asset.json";
+import templeRelief from "@/assets/temple-relief.jpg";
 
 export type SceneKnowledge = "Agriculture" | "Religion" | "Architecture" | "Writing" | "Trade" | "Medicine" | "Government" | "Military";
 
@@ -243,6 +244,25 @@ function Fields({ alive }: { alive: boolean }) {
   );
 }
 
+/** Gilded relief wall — real carved artwork covers the temple once it is complete. */
+function ReliefWall() {
+  const relief = useTexture(templeRelief);
+  const map = useMemo(() => {
+    const t = relief.clone();
+    t.wrapS = THREE.RepeatWrapping;
+    t.repeat.set(2, 1);
+    t.needsUpdate = true;
+    return t;
+  }, [relief]);
+  useEffect(() => () => { map.dispose(); }, [map]);
+  return (
+    <mesh position={[0, 0.85, 0]} castShadow receiveShadow>
+      <boxGeometry args={[3.2, 1.7, 0.16]} />
+      <meshStandardMaterial map={map} roughness={0.85} metalness={0.1} />
+    </mesh>
+  );
+}
+
 function Temple({ phase, onTemple }: { phase: 0 | 1 | 2 | 3; onTemple?: (() => void) | undefined }) {
   const masonry = useMemo(makeMasonryTexture, []);
   useEffect(() => () => masonry.dispose(), [masonry]);
@@ -280,7 +300,9 @@ function Temple({ phase, onTemple }: { phase: 0 | 1 | 2 | 3; onTemple?: (() => v
         </group>
       ))}
       <Grow on={phase >= 3} position={[0, 0, -0.95]}>
-        <mesh position={[0, 0.85, 0]} castShadow receiveShadow><boxGeometry args={[3.2, 1.7, 0.16]} /><meshStandardMaterial map={masonry} roughness={0.85} /></mesh>
+        <Suspense fallback={<mesh position={[0, 0.85, 0]} castShadow receiveShadow><boxGeometry args={[3.2, 1.7, 0.16]} /><meshStandardMaterial map={masonry} roughness={0.85} /></mesh>}>
+          <ReliefWall />
+        </Suspense>
         <mesh position={[0, 0.95, 0.09]}><torusGeometry args={[0.27, 0.035, 8, 24]} /><meshStandardMaterial color={GOLD} metalness={0.5} roughness={0.4} /></mesh>
       </Grow>
       {/* rubble while unfinished */}
@@ -294,7 +316,7 @@ function Temple({ phase, onTemple }: { phase: 0 | 1 | 2 | 3; onTemple?: (() => v
       <Grow on={phase >= 3}>
         <Person p={[-0.6, 0.2, 1.5]} color="#f2ead2" path={0.3} speed={0.6} />
         <Person p={[0.8, 0.2, 1.6]} color="#f2ead2" path={0.25} speed={0.7} />
-        <Sparkles count={30} scale={[3.5, 2.5, 2.5]} position={[0, 1.4, 0]} size={3} speed={0.4} color={GOLD} />
+        <Sparkles count={60} scale={[3.5, 2.5, 2.5]} position={[0, 1.4, 0]} size={4} speed={0.4} color={GOLD} />
       </Grow>
     </group>
   );
