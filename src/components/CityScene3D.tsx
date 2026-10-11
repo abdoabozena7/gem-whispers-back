@@ -3,6 +3,8 @@ import { Environment, Lightformer, Sparkles, useGLTF, useTexture } from "@react-
 import { Suspense, useEffect, useMemo, useRef, type ReactNode } from "react";
 import * as THREE from "three";
 import columnAsset from "@/assets/egypt-column.asset.json";
+const PALM_URL = "https://raw.githubusercontent.com/ToxSam/cc0-models-Polygonal-Mind/main/projects/tomb-chaser-1/PalmTree_Art.glb";
+const JAR_URL = "https://raw.githubusercontent.com/ToxSam/cc0-models-Polygonal-Mind/main/projects/tomb-chaser-1/Jar01_Art.glb";
 import templeRelief from "@/assets/temple-relief.jpg";
 
 export type SceneKnowledge = "Agriculture" | "Religion" | "Architecture" | "Writing" | "Trade" | "Medicine" | "Government" | "Military";
