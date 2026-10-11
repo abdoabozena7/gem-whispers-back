@@ -64,7 +64,7 @@ const dict = {
 } satisfies Record<string, Record<Lang, string>>;
 
 export type Key = keyof typeof dict;
-export const tr = (k: Key, lang: Lang) => dict[k][lang];
+export const tr = (k: Key, lang: Lang, age?: Age | null) => (age ? ageLabels[age]?.[k]?.[lang] : undefined) ?? dict[k][lang];
 
 /** Deterministic hieroglyph rendering of any text, keeping spaces so layout breathes. */
 export function toGlyphs(text: string) {
@@ -136,3 +136,130 @@ export const artifactAlt: Record<Knowledge, { name: Record<Lang, string>; detail
   Medicine: { name: { en: "Bronze Surgical Tools", ar: "أدوات جراحية برونزية", fr: "Instruments chirurgicaux en bronze" }, detail: { en: "Fine bronze blades and probes — surgery three thousand years ago.", ar: "أشفرات ومسابر برونزية رفيعة — جراحة قبل ثلاثة آلاف سنة.", fr: "Lames et sondes fines — la chirurgie il y a trois mille ans." } },
   Military: { name: { en: "War Chariot", ar: "عربة حربية", fr: "Char de guerre" }, detail: { en: "Six-spoked wheels and a light frame — the desert's fastest defense.", ar: "عجلات بستة أضلاع وهيكل خفيف — أسرع دفاع في الصحراء.", fr: "Roues à six rayons et cadre léger — la défense la plus rapide du désert." } },
 };
+
+type Localized = Record<Lang, string>;
+const ageLabels: Partial<Record<Age, Partial<Record<Key, Localized>>>> = {
+  child: {
+    yourCiv: { en: "YOUR EGYPT", ar: "مصر بتاعتك", fr: "TON ÉGYPTE" },
+    problem: { en: "CAN YOU HELP?", ar: "تقدر تساعد؟", fr: "TU PEUX AIDER ?" },
+    peopleSay: { en: "YOUR NEIGHBORS SAY", ar: "جيرانك بيقولوا", fr: "TES VOISINS DISENT" },
+    whatSolves: { en: "Which object could help?", ar: "أنهي قطعة ممكن تساعد؟", fr: "Quel objet peut aider ?" },
+    museumHolds: { en: "Find an object to help your town.", ar: "دور على قطعة تساعد مدينتك.", fr: "Trouve un objet pour aider ta ville." },
+    simulate: { en: "SCAN AN OBJECT", ar: "امسح قطعة", fr: "SCANNER UN OBJET" },
+    frame: { en: "FIND AN OBJECT", ar: "دور على قطعة", fr: "TROUVE UN OBJET" },
+    found: { en: "YOU FOUND IT!", ar: "لقيتها!", fr: "TU L’AS TROUVÉ !" },
+    restore: { en: "BRING BACK", ar: "رجّع", fr: "FAIRE REVENIR" },
+    knowledge: { en: "WHAT IT TEACHES", ar: "بنتعلم منها إيه؟", fr: "CE QU’ON APPREND" },
+    inAction: { en: "LOOK WHAT HAPPENED!", ar: "شوف اللي حصل!", fr: "REGARDE !" },
+    knowledgeRestored: { en: "YOUR TOWN IS COMING BACK", ar: "مدينتك بترجع للحياة", fr: "TA VILLE REPREND VIE" },
+    shaped: { en: "Every object helps your town grow.", ar: "كل قطعة بتساعد مدينتك تكبر.", fr: "Chaque objet aide ta ville à grandir." },
+    welcomeBack: { en: "You’re back! Your town is waiting.", ar: "رجعت! مدينتك مستنياك.", fr: "Te revoilà ! Ta ville t’attend." },
+    hint: { en: "HELP ME FIND IT", ar: "ساعدني ألاقيها", fr: "AIDE-MOI À TROUVER" },
+    hintUse: { en: "What it helps with", ar: "بتساعد في إيه؟", fr: "À quoi ça sert" },
+  },
+  teen: {
+    problem: { en: "YOUR CITY’S CHALLENGE", ar: "تحدّي مدينتك", fr: "LE DÉFI DE TA VILLE" },
+    whatSolves: { en: "Which artifact could solve this?", ar: "أنهي قطعة أثرية ممكن تحل المشكلة؟", fr: "Quel objet pourrait résoudre ce problème ?" },
+    museumHolds: { en: "The next solution is somewhere in the museum.", ar: "الحل الجاي مستنيك في المتحف.", fr: "La prochaine solution t’attend au musée." },
+    simulate: { en: "SCAN AN ARTIFACT", ar: "امسح قطعة أثرية", fr: "SCANNER UN ARTEFACT" },
+    frame: { en: "FIND AN ARTIFACT", ar: "دور على قطعة أثرية", fr: "TROUVE UN ARTEFACT" },
+    peopleSay: { en: "FROM YOUR CITY", ar: "رسالة من مدينتك", fr: "MESSAGE DE TA VILLE" },
+    shaped: { en: "Your discoveries shape what this city becomes.", ar: "اكتشافاتك بتحدد مدينتك هتبقى إيه.", fr: "Tes découvertes façonnent cette ville." },
+  },
+};
+
+/** Each row is a concrete obstacle, purpose clue, and visual clue. No frightening stakes or metaphors. */
+const ageNeeds: Record<Age, Record<Knowledge, Record<Lang, [string, string, string]>>> = {
+  child: {
+    Agriculture: { en: ["The plants need water. The river is too far away. Can you help?", "Find something that moves water to the plants.", "Look for a tool that lifts water from the river."], ar: ["الزرع محتاج مية. مية النهر مش واصلة له. تقدر تساعد؟", "دور على حاجة يقدروا يوصلوا بيها المية للزرع.", "دور على أداة بترفع المية من النهر."], fr: ["Les plantes ont besoin d’eau. L’eau du fleuve n’arrive pas. Tu peux aider ?", "Cherche un objet pour amener l’eau aux plantes.", "Cherche un outil qui soulève l’eau du fleuve."] },
+    Religion: { en: ["Our neighbors want a special place to meet and honor their gods. What could help?", "Find something that shows people honoring their gods.", "Look for pictures of people and gods carved in stone."], ar: ["جيراننا عايزين مكان يجتمعوا فيه ويكرّموا آلهتهم. إيه يساعدهم؟", "دور على حاجة بتورّي الناس وهي بتكرّم آلهتها.", "دور على صور ناس وآلهة محفورة على حجر."], fr: ["Nos voisins veulent un lieu pour se réunir et honorer leurs dieux. Quel objet peut aider ?", "Cherche un objet montrant des gens qui honorent leurs dieux.", "Cherche des gens et des dieux sculptés dans la pierre."] },
+    Architecture: { en: ["The stone roof is heavy. There is nothing to hold it up. What could help?", "Find something that holds up a roof.", "Look for a round piece of stone that stood tall."], ar: ["السقف الحجري تقيل. مفيش حاجة تسنده. إيه يساعدنا؟", "دور على حاجة يقدروا يسندوا بيها السقف.", "دور على حتة حجر مدوّرة كانت واقفة بالطول."], fr: ["Le toit en pierre est lourd. Rien ne le soutient. Quel objet peut aider ?", "Cherche quelque chose qui soutient un toit.", "Cherche un morceau de pierre rond qui tenait debout."] },
+    Writing: { en: ["We keep forgetting our ideas. How can we keep them for later?", "Find something people can put their ideas on.", "Look for a thin sheet with ink marks."], ar: ["كل شوية بننسى أفكارنا. نحتفظ بيها إزاي؟", "دور على حاجة يقدروا يحطّوا عليها أفكارهم.", "دور على ورقة رفيعة عليها علامات بالحبر."], fr: ["On oublie nos idées. Comment les garder ?", "Cherche un objet où garder les idées.", "Cherche une feuille fine avec des marques à l’encre."] },
+    Government: { en: ["Everyone wants to choose the next job. Who gets to decide?", "Find something that shows who made a decision.", "Look for a small object that leaves a mark in clay."], ar: ["كل واحد عايز يختار الشغل الجاي. مين يقرّر؟", "دور على حاجة يقدروا يبيّنوا بيها مين خد القرار.", "دور على قطعة صغيرة بتسيب علامة في الطين."], fr: ["Chacun veut choisir le prochain travail. Qui décide ?", "Cherche un objet qui montre qui a décidé.", "Cherche un petit objet qui laisse une marque dans l’argile."] },
+    Trade: { en: ["We have extra food. How can we take it to the next village?", "Find something that carries food on the river.", "Look for a boat with a sail and room for food."], ar: ["عندنا أكل زيادة. نوصلّه للقرية اللي جنبنا إزاي؟", "دور على حاجة يقدروا ينقلوا فيها الأكل على النهر.", "دور على مركب بشراع وفيه مكان للأكل."], fr: ["Nous avons trop de nourriture. Comment l’apporter au village voisin ?", "Cherche un objet qui transporte la nourriture sur le fleuve.", "Cherche un bateau avec une voile et de la place."] },
+    Medicine: { en: ["A neighbor feels sick. Where can we find a way to help?", "Find something that tells people how to help a sick person.", "Look for a thin sheet with remedies written in ink."], ar: ["جارنا تعبان. نلاقي طريقة نساعده بيها فين؟", "دور على حاجة يعرفوا منها يساعدوا حد تعبان إزاي.", "دور على ورقة رفيعة عليها وصفات بالحبر."], fr: ["Un voisin est malade. Où trouver une façon de l’aider ?", "Cherche un objet qui explique comment aider un malade.", "Cherche une feuille fine avec des remèdes à l’encre."] },
+    Military: { en: ["Our town needs guards to keep homes safe. What could help them?", "Find something a guard uses to keep people safe.", "Look for a long or pointed object a guard could hold."], ar: ["مدينتنا محتاجة حُرّاس يحافظوا على البيوت. إيه يساعدهم؟", "دور على حاجة يقدروا يحموا بيها الناس.", "دور على قطعة طويلة أو مدبّبة يمسكها الحارس."], fr: ["Notre ville a besoin de gardes. Quel objet peut les aider ?", "Cherche un objet qu’un garde utilise pour protéger les gens.", "Cherche un objet long ou pointu qu’un garde peut tenir."] },
+  },
+  teen: {
+    Agriculture: { en: ["The Nile is nearby, but its water cannot reach the dry fields. How could we redirect it?", "Look for something that moves river water to the fields.", "Look for a water-lifting tool, rather than a storage jar."], ar: ["النيل قريب، بس المية مش واصلة للأرض الناشفة. نغيّر مسارها إزاي؟", "دور على حاجة يقدروا ينقلوا بيها مية النهر للأرض.", "دور على أداة بترفع المية، مش جرّة لتخزينها."], fr: ["Le Nil est proche, mais l’eau n’atteint pas les champs secs. Comment la détourner ?", "Cherche un objet qui amène l’eau du fleuve aux champs.", "Cherche un outil pour soulever l’eau, pas une jarre."] },
+    Religion: { en: ["The city has grown, but people have no shared place to honor their gods. What could bring them together?", "Look for evidence of people gathering to honor their gods.", "Look for a carved stone scene showing people and gods."], ar: ["المدينة كبرت، بس الناس معندهاش مكان يجتمعوا فيه لتكريم آلهتهم. إيه يجمعهم؟", "دور على حاجة بتورّي الناس وهي مجتمعة لتكريم آلهتها.", "دور على مشهد محفور على حجر فيه ناس وآلهة."], fr: ["La ville grandit, mais aucun lieu ne réunit les gens pour honorer leurs dieux. Qu’est-ce qui les rassemblerait ?", "Cherche une trace de rassemblements pour honorer les dieux.", "Cherche une scène sculptée dans la pierre avec des gens et des dieux."] },
+    Architecture: { en: ["The builders have a heavy stone roof, but no supports underneath. What could carry its weight?", "Look for something that supports a heavy roof.", "Look for a broken section of a tall, round stone support."], ar: ["البنّائين عندهم سقف حجري تقيل، بس مفيش دعامات تحته. إيه يشيل وزنه؟", "دور على حاجة يقدروا يسندوا بيها سقف تقيل.", "دور على جزء مكسور من دعامة حجرية طويلة ومدوّرة."], fr: ["Les bâtisseurs ont un lourd toit en pierre, sans supports. Qu’est-ce qui porterait son poids ?", "Cherche un objet qui soutient un toit lourd.", "Cherche un morceau cassé d’un support rond en pierre."] },
+    Writing: { en: ["People share useful ideas, but later forget them. How could those ideas last?", "Look for something that keeps a lasting record of ideas.", "Look for a thin plant-made sheet with ink marks."], ar: ["الناس بتشارك أفكار مفيدة، بس بتنسيها بعدين. نحتفظ بيها إزاي؟", "دور على حاجة يقدروا يسجّلوا عليها أفكارهم.", "دور على ورقة رفيعة معمولة من نبات وعليها حبر."], fr: ["Les gens partagent des idées utiles, puis les oublient. Comment les conserver ?", "Cherche un objet qui garde une trace des idées.", "Cherche une fine feuille végétale portant de l’encre."] },
+    Government: { en: ["The city is busier, and people disagree about who assigns the work. How could a decision become official?", "Look for something that confirms a ruler’s decision.", "Look for a small object that stamps a royal mark into clay."], ar: ["المدينة بقت أكبر، والناس مختلفة على مين يوزّع الشغل. القرار يبقى رسمي إزاي؟", "دور على حاجة يقدروا يأكّدوا بيها قرار الحاكم.", "دور على قطعة صغيرة بتطبع علامة ملكية في الطين."], fr: ["La ville s’agrandit et les gens discutent de qui répartit le travail. Comment officialiser une décision ?", "Cherche un objet qui confirme la décision du dirigeant.", "Cherche un petit objet imprimant une marque royale dans l’argile."] },
+    Trade: { en: ["We have extra grain, while a nearby village has goods we need. How could we exchange them across the Nile?", "Look for something that carries goods between villages.", "Look for a sailing boat with space for cargo."], ar: ["عندنا حبوب زيادة، وقرية قريبة عندها حاجات ناقصانا. نتبادلها عبر النيل إزاي؟", "دور على حاجة يقدروا ينقلوا فيها البضايع بين القرى.", "دور على مركب بشراع ومساحة للبضايع."], fr: ["Nous avons du grain en trop ; le village voisin a ce qui nous manque. Comment échanger sur le Nil ?", "Cherche un objet qui transporte des biens entre villages.", "Cherche un bateau à voile avec de la place pour les marchandises."] },
+    Medicine: { en: ["A neighbor is unwell, but no one remembers the right remedy. Where could they look it up?", "Look for something that records ways to treat illness.", "Look for a plant-made sheet with remedies written in ink."], ar: ["جارنا تعبان، ومحدش فاكر الوصفة المناسبة. يلاقوها فين؟", "دور على حاجة مسجّل عليها طرق علاج المرض.", "دور على ورقة من نبات عليها وصفات علاج بالحبر."], fr: ["Un voisin est malade, mais personne ne se rappelle le remède. Où le retrouver ?", "Cherche un objet qui conserve des remèdes.", "Cherche une feuille végétale avec des remèdes à l’encre."] },
+    Military: { en: ["The settlement needs guards to protect its homes. What equipment could help them?", "Look for something guards used to protect a settlement.", "Look for a pointed or sharp object held by a guard."], ar: ["المدينة محتاجة حُرّاس يحموا بيوتها. إيه المعدات اللي تساعدهم؟", "دور على حاجة كان الحُرّاس بيستخدموها لحماية المدينة.", "دور على قطعة مدبّبة أو حادّة يمسكها الحارس."], fr: ["La ville a besoin de gardes pour protéger les maisons. Quel équipement pourrait aider ?", "Cherche un objet utilisé par les gardes pour protéger la ville.", "Cherche un objet pointu ou tranchant tenu par un garde."] },
+  },
+  adult: {
+    Agriculture: { en: ["The Nile flows beside us, but its water cannot reach the dry fields. How could we channel it?", ...fallbackHints.Agriculture.en.slice(0, 2) as [string, string]], ar: ["النيل بجوارنا، لكن مياهه لا تصل إلى الحقول الجافة. كيف نوجّهها إلى الأرض؟", ...fallbackHints.Agriculture.ar.slice(0, 2) as [string, string]], fr: ["Le Nil coule près de nous, mais l’eau n’atteint pas les champs secs. Comment l’acheminer ?", ...fallbackHints.Agriculture.fr.slice(0, 2) as [string, string]] },
+    Religion: { en: ["The settlement lacks a shared sacred gathering place. What could reveal how the Egyptians created one?", ...fallbackHints.Religion.en.slice(0, 2) as [string, string]], ar: ["تفتقر المدينة إلى مكان مقدّس يجتمع فيه الناس. ما الذي يوضّح كيف أنشأه المصريون القدماء؟", ...fallbackHints.Religion.ar.slice(0, 2) as [string, string]], fr: ["La cité manque d’un lieu sacré commun. Quel objet montrerait comment les Égyptiens en créaient un ?", ...fallbackHints.Religion.fr.slice(0, 2) as [string, string]] },
+    Architecture: { en: ["A heavy stone roof has no supports beneath it. What could distribute its weight safely?", ...fallbackHints.Architecture.en.slice(0, 2) as [string, string]], ar: ["السقف الحجري الثقيل لا توجد دعامات تحته. ما الذي يحمل وزنه بأمان؟", ...fallbackHints.Architecture.ar.slice(0, 2) as [string, string]], fr: ["Un lourd toit en pierre n’a aucun support. Qu’est-ce qui répartirait son poids ?", ...fallbackHints.Architecture.fr.slice(0, 2) as [string, string]] },
+    Writing: { en: ["Useful knowledge is shared aloud, then forgotten. How could it become a lasting record?", ...fallbackHints.Writing.en.slice(0, 2) as [string, string]], ar: ["نتبادل المعرفة بالكلام ثم ننساها. كيف نحتفظ بسجلّ دائم لها؟", ...fallbackHints.Writing.ar.slice(0, 2) as [string, string]], fr: ["Le savoir est transmis oralement, puis oublié. Comment en garder une trace durable ?", ...fallbackHints.Writing.fr.slice(0, 2) as [string, string]] },
+    Government: { en: ["As the city grows, people disagree over who assigns work. How could a ruler’s decision be recognized?", ...fallbackHints.Government.en.slice(0, 2) as [string, string]], ar: ["مع نمو المدينة يختلف الناس على من يوزّع العمل. كيف يثبتون أن القرار صادر عن الحاكم؟", ...fallbackHints.Government.ar.slice(0, 2) as [string, string]], fr: ["La cité grandit et les habitants discutent de qui répartit le travail. Comment reconnaître une décision du dirigeant ?", ...fallbackHints.Government.fr.slice(0, 2) as [string, string]] },
+    Trade: { en: ["Our surplus grain cannot reach neighboring villages. What could carry goods along the Nile?", ...fallbackHints.Trade.en.slice(0, 2) as [string, string]], ar: ["الحبوب الزائدة لا تصل إلى القرى المجاورة. ما الذي ينقل البضائع عبر النيل؟", ...fallbackHints.Trade.ar.slice(0, 2) as [string, string]], fr: ["Notre surplus de grain n’atteint pas les villages voisins. Qu’est-ce qui transporterait les biens sur le Nil ?", ...fallbackHints.Trade.fr.slice(0, 2) as [string, string]] },
+    Medicine: { en: ["A sick neighbor needs a remedy, but nobody remembers the instructions. Where could that knowledge be preserved?", ...fallbackHints.Medicine.en.slice(0, 2) as [string, string]], ar: ["جار مريض يحتاج إلى علاج، لكن لا أحد يتذكر الوصفة. أين يمكن حفظ هذه المعرفة؟", ...fallbackHints.Medicine.ar.slice(0, 2) as [string, string]], fr: ["Un voisin malade a besoin d’un remède dont personne ne se rappelle. Où conserver ce savoir ?", ...fallbackHints.Medicine.fr.slice(0, 2) as [string, string]] },
+    Military: { en: ["The growing settlement needs protection for its homes. What could equip its guards?", ...fallbackHints.Military.en.slice(0, 2) as [string, string]], ar: ["المدينة المتنامية تحتاج إلى حماية بيوتها. ما الذي يجهّز حُرّاسها؟", ...fallbackHints.Military.ar.slice(0, 2) as [string, string]], fr: ["La cité en expansion doit protéger ses maisons. Quel objet équiperait ses gardes ?", ...fallbackHints.Military.fr.slice(0, 2) as [string, string]] },
+  },
+};
+
+export const problemForAge = (k: Knowledge, lang: Lang, age: Age) => ageNeeds[age][k][lang][0];
+export const hintsForAge = (k: Knowledge, lang: Lang, age: Age): [string, string, string] => [ageNeeds[age][k][lang][1], ageNeeds[age][k][lang][2], fallbackHints[k][lang][2]];
+
+const childDetails: Record<Knowledge, Localized> = {
+  Agriculture: { en: "This tool brings water to plants so they can grow.", ar: "الأداة دي بتوصل المية للزرع علشان يكبر.", fr: "Cet outil apporte de l’eau aux plantes pour les faire pousser." },
+  Religion: { en: "These stone pictures show people honoring their gods.", ar: "الصور دي على الحجر بتورّي الناس وهي بتكرّم آلهتها.", fr: "Ces images en pierre montrent les gens honorant leurs dieux." },
+  Architecture: { en: "A stone column holds up a heavy roof.", ar: "العمود الحجري بيسند السقف التقيل.", fr: "Une colonne en pierre soutient un toit lourd." },
+  Writing: { en: "People put ink on this sheet to keep their ideas.", ar: "الناس حطّت حبر على الورقة دي علشان تحتفظ بأفكارها.", fr: "Les gens mettaient de l’encre sur cette feuille pour garder leurs idées." },
+  Government: { en: "This little seal leaves a mark that means the ruler agreed.", ar: "الختم الصغير ده بيسيب علامة معناها إن الحاكم وافق.", fr: "Ce petit sceau laisse une marque qui veut dire que le dirigeant a accepté." },
+  Trade: { en: "This boat carries food and other things between villages.", ar: "المركب ده بينقل الأكل والحاجات بين القرى.", fr: "Ce bateau transporte de la nourriture et des objets entre les villages." },
+  Medicine: { en: "This sheet keeps instructions for helping sick people.", ar: "الورقة دي عليها وصفات تساعد الناس التعبانة.", fr: "Cette feuille garde des recettes pour aider les malades." },
+  Military: { en: "Guards used this to keep homes safe.", ar: "الحُرّاس استخدموا دي علشان يحموا البيوت.", fr: "Les gardes utilisaient cet objet pour protéger les maisons." },
+};
+const simpleAlt: Record<Knowledge, Localized> = {
+  Agriculture: { en: "This curved tool cuts grain when it is ready.", ar: "الأداة المنحنية دي بتقطع القمح لما يكبر.", fr: "Cet outil courbé coupe le grain quand il est mûr." },
+  Religion: { en: "This gold mask shows the face of a young king. It was made to honor him after he died.", ar: "القناع الذهبي ده بيورّي وش ملك شاب. اتعمل لتكريمه بعد موته.", fr: "Ce masque en or montre un jeune roi. Il a été fait pour l’honorer après sa mort." },
+  Architecture: { en: "A weight on a string helps builders make straight walls.", ar: "وزن مربوط في خيط بيساعد البنّائين يعملوا حيطان مستقيمة.", fr: "Un poids sur un fil aide les bâtisseurs à faire des murs droits." },
+  Writing: { en: "This palette holds the ink and pens used to record ideas.", ar: "اللوحة دي فيها الحبر والأقلام اللي بيسجّلوا بيها أفكارهم.", fr: "Cette palette garde l’encre et les outils pour noter des idées." },
+  Government: { en: "The ruler’s decision was put on this stone for people to see.", ar: "قرار الحاكم اتحطّ على الحجر ده علشان الناس تشوفه.", fr: "La décision du dirigeant était sur cette pierre pour que les gens la voient." },
+  Trade: { en: "These stone weights help people measure goods fairly.", ar: "الأوزان الحجرية دي بتساعد الناس يقيسوا البضايع بعدل.", fr: "Ces poids en pierre aident à mesurer les marchandises équitablement." },
+  Medicine: { en: "Healers used these small tools to care for people.", ar: "المعالجين استخدموا الأدوات الصغيرة دي علشان يعتنوا بالناس.", fr: "Les soignants utilisaient ces petits outils pour aider les gens." },
+  Military: { en: "This light cart helped guards travel quickly.", ar: "العربة الخفيفة دي ساعدت الحُرّاس يتحركوا بسرعة.", fr: "Ce char léger aidait les gardes à se déplacer vite." },
+};
+const teenDetails: Record<Knowledge, Localized> = {
+  Agriculture: { en: "Moving Nile water to dry fields helped Egyptians grow reliable crops.", ar: "نقل مية النيل للأرض الناشفة ساعد المصريين يزرعوا باستمرار.", fr: "Amener l’eau du Nil aux champs assurait les récoltes." },
+  Religion: { en: "Carved scenes show the rituals that brought communities together.", ar: "المشاهد المحفورة بتورّي الطقوس اللي جمعت الناس.", fr: "Les scènes sculptées montrent les rites qui réunissaient les communautés." },
+  Architecture: { en: "Stone columns spread the weight of heavy roofs and made larger buildings possible.", ar: "الأعمدة الحجرية وزّعت وزن السقف وخلّت المباني الأكبر ممكنة.", fr: "Les colonnes répartissaient le poids des toits pour bâtir plus grand." },
+  Writing: { en: "Ink on papyrus let people keep ideas and pass them on.", ar: "الحبر على البردي خلّى الناس تحفظ أفكارها وتنقلها لغيرها.", fr: "L’encre sur le papyrus permettait de garder et transmettre les idées." },
+  Government: { en: "A royal mark showed that a decision had the ruler’s approval.", ar: "العلامة الملكية كانت بتثبت إن الحاكم وافق على القرار.", fr: "Une marque royale prouvait qu’une décision était approuvée." },
+  Trade: { en: "Sailing boats connected villages by carrying food, goods, and ideas along the Nile.", ar: "المراكب ربطت القرى ببعض بنقل الأكل والبضايع والأفكار عبر النيل.", fr: "Les voiliers reliaient les villages en transportant biens et idées sur le Nil." },
+  Medicine: { en: "Recorded remedies let healers share what they knew about treating illness.", ar: "تسجيل الوصفات ساعد المعالجين يشاركوا معرفتهم بالعلاج.", fr: "Les remèdes écrits permettaient aux soignants de partager leurs connaissances." },
+  Military: { en: "Guards used equipment like this to protect settlements.", ar: "الحُرّاس استخدموا معدات زي دي لحماية المدن.", fr: "Les gardes utilisaient cet équipement pour protéger les cités." },
+};
+export function artifactDetailForAge(k: Knowledge, lang: Lang, age: Age, alt = false) {
+  if (age === "adult") return (alt ? artifactAlt : artifactText)[k].detail[lang];
+  return (alt ? simpleAlt : age === "child" ? childDetails : teenDetails)[k][lang];
+}
+const childReactions: Record<Knowledge, Localized> = {
+  Agriculture: { en: "Water reaches the plants. The fields turn green!", ar: "المية وصلت للزرع. الأرض بقت خضرا!", fr: "L’eau arrive ! Les champs deviennent verts !" },
+  Religion: { en: "Your town has a place for its temple. Next, it needs supports.", ar: "مدينتك بقى فيها مكان للمعبد. دلوقتي محتاج دعامات.", fr: "Ta ville a une place pour son temple. Il lui faut des supports." },
+  Architecture: { en: "The columns are here! The temple still needs its records.", ar: "الأعمدة وصلت! لسه المعبد محتاج سجلاته.", fr: "Les colonnes sont là ! Le temple attend ses textes." },
+  Writing: { en: "The temple is ready! Look at its golden pictures.", ar: "المعبد بقى جاهز! شوف صوره الذهبية.", fr: "Le temple est prêt ! Regarde ses images dorées." },
+  Government: { en: "A palace appears. Everyone knows their next job!", ar: "القصر ظهر. كل واحد عارف شغله الجاي!", fr: "Un palais apparaît. Chacun sait quoi faire !" },
+  Trade: { en: "Boats are sailing! People bring things to the market.", ar: "المراكب بتبحر! الناس بتجيب حاجات للسوق.", fr: "Les bateaux naviguent ! Le marché s’anime." },
+  Medicine: { en: "A place to help sick neighbors is open!", ar: "مكان يساعد الجيران التعبانين فتح!", fr: "Un lieu pour soigner les voisins ouvre !" },
+  Military: { en: "New walls help keep your town safe!", ar: "الأسوار الجديدة بتحمي مدينتك!", fr: "Les nouveaux murs protègent ta ville !" },
+};
+export const reactionForAge = (k: Knowledge, lang: Lang, age: Age) => age === "child" ? childReactions[k][lang] : artifactText[k].reaction[lang];
+export function identityForAge(discoveries: Knowledge[], lang: Lang, age: Age) {
+  const builders = discoveries.includes("Writing") && discoveries.includes("Architecture");
+  const identities = age === "child" ? [
+    { en: "Your town of builders", ar: "مدينة البنّائين بتاعتك", fr: "Ta ville de bâtisseurs" },
+    { en: "Your town by the river", ar: "مدينتك جنب النهر", fr: "Ta ville au bord du fleuve" },
+    { en: "Your sleeping town", ar: "مدينتك النايمة", fr: "Ta ville endormie" },
+  ] : [
+    { en: "The Builders’ Kingdom", ar: "مملكة البنّائين", fr: "Le royaume des bâtisseurs" },
+    { en: "The River Civilization", ar: "حضارة النهر", fr: "La civilisation du fleuve" },
+    { en: "A Kingdom Forgotten", ar: "مملكة منسيّة", fr: "Un royaume oublié" },
+  ];
+  return identities[builders ? 0 : discoveries.length ? 1 : 2]?.[lang] ?? "";
+}
