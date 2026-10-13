@@ -1,10 +1,12 @@
 import { Canvas, useFrame } from "@react-three/fiber";
 import { Environment, Lightformer, Sparkles, useGLTF, useTexture } from "@react-three/drei";
-import { Suspense, useEffect, useMemo, useRef, type ReactNode } from "react";
+import { Suspense, useEffect, useMemo, useRef, createContext, useContext, useState, type ReactNode } from "react";
 import * as THREE from "three";
 import columnAsset from "@/assets/egypt-column.asset.json";
 const PALM_URL = "https://raw.githubusercontent.com/ToxSam/cc0-models-Polygonal-Mind/main/projects/tomb-chaser-1/PalmTree_Art.glb";
 const JAR_URL = "https://raw.githubusercontent.com/ToxSam/cc0-models-Polygonal-Mind/main/projects/tomb-chaser-1/Jar01_Art.glb";
+import palmAsset from "@/assets/egypt-palm.asset.json";
+import { Dock, GrainRows, Pottery, Riverbank, RoofDetails, TempleSteps } from "./CityDetails";
 import templeRelief from "@/assets/temple-relief.jpg";
 
 export type SceneKnowledge = "Agriculture" | "Religion" | "Architecture" | "Writing" | "Trade" | "Medicine" | "Government" | "Military";
@@ -78,16 +80,20 @@ function makeFieldTexture(alive: boolean) {
 /** Damped scale grow — elements rise out of the sand when their knowledge returns. */
 function Grow({ on, children, position, min = 0.001, speed = 2.2 }: { on: boolean; children: ReactNode; position?: [number, number, number]; min?: number; speed?: number }) {
   const ref = useRef<THREE.Group>(null);
+  const still = useContext(Motion);
   useFrame((_, d) => {
     if (!ref.current) return;
     const target = on ? 1 : min;
     const s = ref.current.scale.y;
-    const n = THREE.MathUtils.lerp(s, target, 1 - Math.exp(-speed * Math.min(d, 0.05)));
+    const n = still ? target : THREE.MathUtils.lerp(s, target, 1 - Math.exp(-speed * Math.min(d, 0.05)));
     ref.current.scale.set(on ? Math.max(n, 0.6 + n * 0.4) : n, n, on ? Math.max(n, 0.6 + n * 0.4) : n);
     ref.current.visible = n > 0.01;
   });
   return <group ref={ref} position={position ?? [0, 0, 0]} scale={min}>{children}</group>;
 }
+
+const Motion = createContext(false);
+const DetailPalette = createContext({ stone: "", wood: "", leaf: "", grain: "", ink: "" });
 
 const SAND = "#d2b07a";
 const BRICK = "#b48a5a";
@@ -127,45 +133,56 @@ function EgyptianColumn() {
 
 function House({ p, r = 0, s = 1 }: { p: [number, number, number]; r?: number; s?: number }) {
   const masonry = useMemo(makeMasonryTexture, []);
+  const palette = useContext(DetailPalette);
   useEffect(() => () => masonry.dispose(), [masonry]);
   return (
     <group position={p} rotation-y={r} scale={s}>
       <mesh position={[0, 0.4, 0]} castShadow receiveShadow><boxGeometry args={[1, 0.8, 0.9]} /><meshStandardMaterial color={BRICK} map={masonry} roughness={1} /></mesh>
       <mesh position={[0, 0.84, 0]} castShadow><boxGeometry args={[1.06, 0.08, 0.96]} /><meshStandardMaterial color="#9c7449" roughness={1} /></mesh>
+      <RoofDetails stone={palette.stone} wood={palette.wood} />
+      <Suspense fallback={null}><Pottery p={[0.23, 0.89, 0.1]} s={0.21} /></Suspense>
       <mesh position={[0, 0.25, 0.46]}><boxGeometry args={[0.22, 0.4, 0.02]} /><meshStandardMaterial color="#3a2a1c" /></mesh>
     </group>
   );
 }
 
+function PalmArtwork() {
+  const { scene } = useGLTF(palmAsset.url);
+  const object = useMemo(() => {
+    const clone = scene.clone(true);
+    const height = new THREE.Box3().setFromObject(clone).getSize(new THREE.Vector3()).y;
+    clone.scale.setScalar(2.5 / (height || 1));
+    const bounds = new THREE.Box3().setFromObject(clone);
+    const center = bounds.getCenter(new THREE.Vector3());
+    clone.position.set(-center.x, -bounds.min.y, -center.z);
+    clone.traverse((o) => { if (o instanceof THREE.Mesh) { o.castShadow = true; o.receiveShadow = true; } });
+    return clone;
+  }, [scene]);
+  return <primitive object={object} />;
+}
 function Palm({ p, s = 1 }: { p: [number, number, number]; s?: number }) {
   const ref = useRef<THREE.Group>(null);
-  const off = p[0] * 3;
-  useFrame(({ clock }) => { if (ref.current) ref.current.rotation.z = Math.sin(clock.elapsedTime * 1.2 + off) * 0.05; });
-  return (
-    <group position={p} scale={s} ref={ref}>
-      <mesh position={[0, 0.9, 0]} castShadow><cylinderGeometry args={[0.06, 0.1, 1.8, 6]} /><meshStandardMaterial color="#7a5a3a" roughness={1} /></mesh>
-      {Array.from({ length: 6 }).map((_, i) => (
-        <mesh key={i} position={[0, 1.8, 0]} rotation={[0.9, (i / 6) * Math.PI * 2, 0]} castShadow>
-          <coneGeometry args={[0.18, 1.1, 3]} />
-          <meshStandardMaterial color="#4f7a33" flatShading />
-        </mesh>
-      ))}
-    </group>
-  );
+  const still = useContext(Motion);
+  useFrame(({ clock }) => { if (ref.current && !still) ref.current.rotation.z = Math.sin(clock.elapsedTime * 0.7 + p[0]) * 0.018; });
+  return <group position={p} scale={s} ref={ref}><Suspense fallback={null}><PalmArtwork /></Suspense></group>;
 }
 
 function Person({ p, color, path = 0.6, speed = 1 }: { p: [number, number, number]; color: string; path?: number; speed?: number }) {
   const ref = useRef<THREE.Group>(null);
+  const still = useContext(Motion);
+  const limbs = useRef<THREE.Group>(null);
   useFrame(({ clock }) => {
-    if (!ref.current) return;
+    if (!ref.current || still) return;
     const t = clock.elapsedTime * speed + p[0];
     ref.current.position.x = p[0] + Math.sin(t) * path;
     ref.current.position.y = p[1] + Math.abs(Math.sin(t * 4)) * 0.04;
     ref.current.rotation.y = Math.cos(t) > 0 ? Math.PI / 2 : -Math.PI / 2;
+    limbs.current?.children.forEach((limb, i) => { limb.rotation.x = Math.sin(t * 4 + i * Math.PI) * 0.45; });
   });
   return (
     <group ref={ref} position={p}>
       <mesh position={[0, 0.22, 0]} castShadow><capsuleGeometry args={[0.08, 0.22, 4, 8]} /><meshStandardMaterial color={color} /></mesh>
+      <group ref={limbs} position={[0, 0.3, 0]}>{[-1, 1].map((side) => <group key={side} position={[side * 0.09, 0, 0]}><mesh position={[0, -0.07, 0]}><capsuleGeometry args={[0.023, 0.12, 2, 5]} /><meshStandardMaterial color="#7a4e2e" /></mesh></group>)}</group>
       <mesh position={[0, 0.48, 0]} castShadow><sphereGeometry args={[0.07, 10, 10]} /><meshStandardMaterial color="#7a4e2e" /></mesh>
     </group>
   );
@@ -173,6 +190,7 @@ function Person({ p, color, path = 0.6, speed = 1 }: { p: [number, number, numbe
 
 function Nile({ alive }: { alive: number }) {
   const mat = useRef<THREE.MeshStandardMaterial>(null);
+  const still = useContext(Motion);
   const tex = useMemo(() => {
     const c = document.createElement("canvas");
     c.width = c.height = 128;
@@ -183,7 +201,7 @@ function Nile({ alive }: { alive: number }) {
     const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(1, 6); t.colorSpace = THREE.SRGBColorSpace; return t;
   }, []);
   useFrame((_, d) => {
-    tex.offset.y -= d * (0.02 + alive * 0.08);
+    if (!still) tex.offset.y -= Math.min(d, 0.05) * (0.02 + alive * 0.08);
     if (mat.current) mat.current.color.lerp(new THREE.Color(alive > 0 ? "#ffffff" : "#8a8f86"), 1 - Math.exp(-2 * d));
   });
   return (
@@ -196,8 +214,9 @@ function Nile({ alive }: { alive: number }) {
 
 function Boat({ on }: { on: boolean }) {
   const ref = useRef<THREE.Group>(null);
+  const still = useContext(Motion);
   useFrame(({ clock }) => {
-    if (!ref.current) return;
+    if (!ref.current || still) return;
     ref.current.position.z = ((clock.elapsedTime * 0.8) % 16) - 8;
     ref.current.rotation.z = Math.sin(clock.elapsedTime * 2) * 0.04;
   });
@@ -215,6 +234,9 @@ function Boat({ on }: { on: boolean }) {
 function Fields({ alive }: { alive: boolean }) {
   const dry = useMemo(() => makeFieldTexture(false), []);
   const green = useMemo(() => makeFieldTexture(true), []);
+  const palette = useContext(DetailPalette);
+  const still = useContext(Motion);
+  useEffect(() => () => { dry.dispose(); green.dispose(); }, [dry, green]);
   const spots: [number, number][] = [[-3.6, 1.2], [-2.2, 1.2], [-3.6, 2.6], [-2.2, 2.6]];
   return (
     <group>
@@ -225,15 +247,11 @@ function Fields({ alive }: { alive: boolean }) {
             <meshStandardMaterial map={alive ? green : dry} roughness={1} />
           </mesh>
           <Grow on={alive} position={[x, 0.03, z]} speed={1.4 + i * 0.3}>
-            {Array.from({ length: 9 }).map((_, k) => (
-              <mesh key={k} position={[((k % 3) - 1) * 0.35, 0.12, (Math.floor(k / 3) - 1) * 0.35]} castShadow>
-                <coneGeometry args={[0.1, 0.28, 5]} />
-                <meshStandardMaterial color={k % 2 ? "#d3b44a" : "#7aa84a"} flatShading />
-              </mesh>
-            ))}
+
           </Grow>
         </group>
       ))}
+      <GrainRows alive={alive} color={palette.grain} still={still} />
       {/* irrigation canal from the Nile */}
       <Grow on={alive} position={[-3.6, 0.03, 1.9]}>
         <mesh rotation-x={-Math.PI / 2}><planeGeometry args={[3.8, 0.22]} /><meshStandardMaterial color="#3d82a8" emissive="#1d4a66" emissiveIntensity={0.4} /></mesh>
@@ -268,6 +286,7 @@ function ReliefWall() {
 function Temple({ phase, onTemple }: { phase: 0 | 1 | 2 | 3; onTemple?: (() => void) | undefined }) {
   const masonry = useMemo(makeMasonryTexture, []);
   useEffect(() => () => masonry.dispose(), [masonry]);
+  const palette = useContext(DetailPalette);
   const glow = useRef<THREE.MeshStandardMaterial>(null);
   const ghost = useRef<THREE.MeshBasicMaterial>(null);
   useFrame(({ clock }) => {
@@ -277,6 +296,8 @@ function Temple({ phase, onTemple }: { phase: 0 | 1 | 2 | 3; onTemple?: (() => v
   const cols = [-1.2, -0.4, 0.4, 1.2];
   return (
     <group position={[2.5, 0, -1.5]} onClick={(e) => { e.stopPropagation(); onTemple?.(); }}>
+      {phase === 3 && <group position={[-2.5, 0, 1.5]}><TempleSteps stone={palette.stone} ink={palette.ink} /></group>}
+      {phase >= 2 && <Suspense fallback={null}><Pottery p={[-1.55, 0.2, 1]} /><Pottery p={[1.55, 0.2, 1]} /></Suspense>}
       {/* sacred outline promised by Religion */}
       <mesh position={[0, 1.2, 0]}>
         <boxGeometry args={[3.4, 2.4, 2.2]} />
@@ -334,9 +355,11 @@ function Pyramid({ p, s }: { p: [number, number, number]; s: number }) {
 }
 
 function Market({ on }: { on: boolean }) {
-  const colors = ["#b5462e", "#2f6c8f", "#d6a843"];
+  const colors = ["#b5462e", "#2f6c8f", "#d2c4a5"];
+  const palette = useContext(DetailPalette);
   return (
     <Grow on={on} position={[-4, 0, -2.5]}>
+      <group position={[4, 0, 2.5]}><Dock wood={palette.wood} /></group>
       {colors.map((c, i) => (
         <group key={c} position={[i * 0.8, 0, 0]}>
           {([[-0.25, -0.2], [0.25, -0.2], [-0.25, 0.2], [0.25, 0.2]] as [number, number][]).map(([x, z], k) => (
@@ -344,6 +367,7 @@ function Market({ on }: { on: boolean }) {
           ))}
           <mesh position={[0, 0.62, 0]} castShadow><boxGeometry args={[0.65, 0.04, 0.55]} /><meshStandardMaterial color={c} /></mesh>
           <mesh position={[0, 0.2, 0]}><boxGeometry args={[0.4, 0.2, 0.3]} /><meshStandardMaterial color="#c9a45a" /></mesh>
+          <Suspense fallback={null}><Pottery p={[-0.13, 0.32, 0]} s={0.16} /><Pottery p={[0.14, 0.32, 0]} s={0.13} /><Pottery p={[0.32, 0, 0.3]} s={0.3} /></Suspense>
         </group>
       ))}
       <Person p={[0.8, 0, 0.6]} color="#d9c8a0" path={0.8} speed={0.9} />
@@ -352,11 +376,15 @@ function Market({ on }: { on: boolean }) {
 }
 
 function Palace({ on }: { on: boolean }) {
+  const masonry = useMemo(makeMasonryTexture, []);
+  useEffect(() => () => masonry.dispose(), [masonry]);
   return (
     <Grow on={on} position={[0, 0, -4.8]} speed={1.3}>
-      <mesh position={[0, 0.6, 0]} castShadow><boxGeometry args={[3, 1.2, 1.4]} /><meshStandardMaterial color={STONE} /></mesh>
+      <mesh position={[0, 0.6, 0]} castShadow><boxGeometry args={[3, 1.2, 1.4]} /><meshStandardMaterial color={STONE} map={masonry} bumpMap={masonry} bumpScale={0.04} /></mesh>
       <mesh position={[-1.7, 1, 0]} castShadow><boxGeometry args={[0.6, 2, 1.6]} /><meshStandardMaterial color="#cdb68a" /></mesh>
       <mesh position={[1.7, 1, 0]} castShadow><boxGeometry args={[0.6, 2, 1.6]} /><meshStandardMaterial color="#cdb68a" /></mesh>
+      <Suspense fallback={null}><group position={[-0.95, 0, 0.86]} scale={0.7}><EgyptianColumn /></group><group position={[0.95, 0, 0.86]} scale={0.7}><EgyptianColumn /></group></Suspense>
+      <mesh position={[0, 0.43, 0.71]}><boxGeometry args={[0.5, 0.86, 0.03]} /><meshStandardMaterial color="#3a2a1c" /></mesh>
       <mesh position={[0, 1.3, 0.71]}><boxGeometry args={[0.5, 0.5, 0.02]} /><meshStandardMaterial color={GOLD} emissive={GOLD} emissiveIntensity={0.5} /></mesh>
     </Grow>
   );
@@ -369,6 +397,7 @@ function Walls({ on }: { on: boolean }) {
       {segs.map(([x, z, w, r], i) => (
         <Grow key={i} on={on} position={[x, 0, z]} speed={1 + i * 0.3}>
           <mesh position={[0, 0.35, 0]} rotation-y={r} castShadow><boxGeometry args={[w, 0.7, 0.3]} /><meshStandardMaterial color={BRICK} /></mesh>
+          {Array.from({ length: 15 }, (_, k) => <mesh key={k} position={[Math.cos(r) * (-w / 2 + k * w / 14), 0.79, -Math.sin(r) * (-w / 2 + k * w / 14)]} castShadow><boxGeometry args={[0.23, 0.18, 0.3]} /><meshStandardMaterial color={BRICK} /></mesh>)}
         </Grow>
       ))}
     </group>
@@ -404,7 +433,7 @@ function Atmosphere({ life }: { life: number }) {
       <color attach="background" args={["#8d7a62"]} />
       <fog attach="fog" args={["#8d7a62", 18, 38]} />
       <hemisphereLight ref={amb} args={["#fff1d6", "#8a6a44", 0.4]} />
-      <directionalLight ref={sun} position={[8, 12, 6]} intensity={1} castShadow shadow-mapSize-width={1024} shadow-mapSize-height={1024} shadow-camera-left={-12} shadow-camera-right={12} shadow-camera-top={12} shadow-camera-bottom={-12} />
+      <directionalLight ref={sun} position={[8, 12, 6]} intensity={1} castShadow shadow-mapSize-width={2048} shadow-mapSize-height={2048} shadow-bias={-0.0003} shadow-normalBias={0.035} shadow-camera-left={-12} shadow-camera-right={12} shadow-camera-top={12} shadow-camera-bottom={-12} />
     </>
   );
 }
@@ -442,19 +471,29 @@ function Dunes() {
 }
 
 export default function CityScene3D({ discoveries, focus, onTemple, still }: Props) {
+  const [reduced, setReduced] = useState(false);
+  const [palette, setPalette] = useState({ stone: "", wood: "", leaf: "", grain: "", ink: "" });
+  useEffect(() => {
+    const query = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const sync = () => setReduced(query.matches); sync(); query.addEventListener("change", sync);
+    const style = getComputedStyle(document.documentElement);
+    setPalette({ stone: style.getPropertyValue("--scene-stone").trim(), wood: style.getPropertyValue("--scene-wood").trim(), leaf: style.getPropertyValue("--scene-leaf").trim(), grain: style.getPropertyValue("--scene-grain").trim(), ink: style.getPropertyValue("--scene-ink").trim() });
+    return () => query.removeEventListener("change", sync);
+  }, []);
   const has = (k: SceneKnowledge) => discoveries.includes(k);
   const sand = useMemo(() => makeSandTexture(), []);
+  useEffect(() => () => sand.dispose(), [sand]);
   const templePhase: 0 | 1 | 2 | 3 = has("Writing") && has("Architecture") && has("Religion") ? 3 : has("Architecture") && has("Religion") ? 2 : has("Religion") ? 1 : 0;
   const life = Math.min(1, discoveries.length / 5);
 
   return (
-    <Canvas shadows dpr={[1, 1.75]} camera={{ position: [10, 10, 12], fov: 42 }} gl={{ antialias: true }}>
+    <Motion.Provider value={Boolean(still || reduced)}><DetailPalette.Provider value={palette}><Canvas shadows dpr={[1, 1.75]} camera={{ position: [10, 10, 12], fov: 42 }} gl={{ antialias: true }}>
       <Atmosphere life={life} />
       <Environment resolution={64}>
         <Lightformer intensity={1.5} position={[0, 6, 0]} scale={[10, 10, 1]} rotation-x={Math.PI / 2} />
         <Lightformer intensity={0.8} color="#ffd9a0" position={[-6, 2, 2]} rotation-y={Math.PI / 2} scale={[20, 2, 1]} />
       </Environment>
-      <Rig focus={focus} still={still} />
+      <Rig focus={focus} still={still || reduced} />
 
       <mesh rotation-x={-Math.PI / 2} receiveShadow>
         <planeGeometry args={[60, 60]} />
@@ -467,6 +506,7 @@ export default function CityScene3D({ discoveries, focus, onTemple, still }: Pro
       <Pyramid p={[13, 0, -9]} s={2.4} />
       <Pyramid p={[3, 0, -15]} s={2} />
 
+      {palette.stone && <Riverbank leaf={palette.leaf} stone={palette.stone} />}
       <Nile alive={has("Agriculture") ? 1 : 0} />
       <Palm p={[-4.2, 0, -0.2]} /><Palm p={[-4.4, 0, 3.8]} s={0.85} /><Palm p={[-4.1, 0, -4]} s={1.1} />
       <Palm p={[4.8, 0, 2.6]} s={0.9} />
@@ -485,6 +525,6 @@ export default function CityScene3D({ discoveries, focus, onTemple, still }: Pro
       <FocusBurst focus={focus} />
       {/* blowing sand that settles as knowledge returns */}
       <Sparkles count={Math.round(80 * (1 - life)) + 10} scale={[24, 4, 24]} position={[0, 1.5, 0]} size={2} speed={0.8} color="#e9d2a2" opacity={0.6} />
-    </Canvas>
+    </Canvas></DetailPalette.Provider></Motion.Provider>
   );
 }

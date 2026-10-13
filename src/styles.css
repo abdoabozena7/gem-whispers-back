@@ -61,6 +61,14 @@
   --gold: oklch(.72 .105 76);
   --green: oklch(.56 .084 130);
   --shadow-discovery: 0 14px 32px oklch(.07 .02 60 / 42%), 0 0 28px oklch(.72 .105 76 / 14%);
+  --scene-stone: #e3cfa4;
+  --scene-clay: #b48a5a;
+  --scene-wood: #65452f;
+  --scene-linen: #efe3c4;
+  --scene-leaf: #4f7a33;
+  --scene-grain: #c5ac58;
+  --scene-water: #3d82a8;
+  --scene-ink: #294b55;
 }
 
 * { border-color: var(--border); box-sizing: border-box; }
