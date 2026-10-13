@@ -9,7 +9,7 @@ import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { getRiddle } from "@/lib/ai/riddle.functions";
 import {
-  artifactAlt, artifactText, fallbackHints, fallbackProblem, knowledgeName, LANGS, toGlyphs, tr,
+  artifactAlt, artifactText, artifactDetailForAge, hintsForAge, identityForAge, problemForAge, reactionForAge, knowledgeName, LANGS, toGlyphs, tr,
   type Age, type Key, type Knowledge, type Lang,
 } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
@@ -103,7 +103,7 @@ function GemExperience() {
   const decoded = lang !== null;
   const need = ORDER.find((k) => !discoveries.includes(k)) ?? null;
   const progress = Math.round((discoveries.length / ORDER.length) * 100);
-  const ctx = { L, decoded };
+  const ctx = { L, decoded, age: age ?? "adult" };
 
   const reset = () => {
     localStorage.removeItem(STORAGE);
@@ -137,7 +137,7 @@ function GemExperience() {
     );
   } else if (view === "artifact") {
     body = (
-      <ArtifactReveal ctx={ctx} k={current} alt={scanCount % 2 === 1} restored={discoveries.includes(current)}
+      <ArtifactReveal ctx={ctx} k={current} alt={false} restored={discoveries.includes(current)}
         onRestore={() => { playRestore(); setDiscoveries((d) => (d.includes(current) ? d : [...d, current])); }}
         onChanged={() => { playReact(); setReaction(current); setView("city"); }} />
     );
@@ -149,30 +149,30 @@ function GemExperience() {
     body = (
       <main className="app-shell">
         <header className="city-header">
-          <div className="city-header__title"><span>{tr("yourCiv", L)}</span><strong>{tr("living", L)}</strong></div>
+          <div className="city-header__title"><span>{tr("yourCiv", L, ctx.age)}</span><strong>{tr("living", L, ctx.age)}</strong></div>
           <button className="progress-medallion" onClick={() => setView("memory")} aria-label={`${progress}%`}>
-            <span>{progress}%</span><small>{tr("restored", L)}</small>
+            <span>{progress}%</span><small>{tr("restored", L, ctx.age)}</small>
           </button>
         </header>
         <div className="city-stage-wrap">
           <LivingCity discoveries={discoveries} focus={reaction} onTemple={() => setTempleOpen(true)} />
-          {reaction && <ReactionBanner L={L} k={reaction} />}
-          {welcome && !reaction && <div className="welcome-toast">{tr("welcomeBack", L)}</div>}
+          {reaction && <ReactionBanner L={L} age={ctx.age} k={reaction} />}
+          {welcome && !reaction && <div className="welcome-toast">{tr("welcomeBack", L, ctx.age)}</div>}
         </div>
         <section className="city-actions">
           {need && (
             <button className="need-strip" onClick={() => setView("need")}>
-              <span><small>{tr("problem", L)}</small><strong className="need-teaser">{fallbackProblem[need][L].split(/[.!?؟]/)[0]}…</strong></span><ChevronRight />
+              <span><small>{tr("problem", L, ctx.age)}</small><strong className="need-teaser">{problemForAge(need, L, ctx.age).split(/[.!?؟]/)[0]}…</strong></span><ChevronRight />
             </button>
           )}
-          <Button variant="discovery" size="museum" className="w-full" onClick={() => setView("scan")}><ScanLine /> {tr("discover", L)}</Button>
+          <Button variant="discovery" size="museum" className="w-full" onClick={() => setView("scan")}><ScanLine /> {tr("discover", L, ctx.age)}</Button>
         </section>
         <nav className="compact-nav" aria-label="Main navigation">
-          <button className="compact-nav__item is-active" aria-label={tr("living", L)}><CircleDot /></button>
-          <button className="compact-nav__item" onClick={() => setView("need")} aria-label={tr("problem", L)}><Lightbulb /></button>
-          <button className="compact-nav__item" onClick={() => setView("memory")} aria-label={tr("myEgypt", L)}><Crown /></button>
+          <button className="compact-nav__item is-active" aria-label={tr("living", L, ctx.age)}><CircleDot /></button>
+          <button className="compact-nav__item" onClick={() => setView("need")} aria-label={tr("problem", L, ctx.age)}><Lightbulb /></button>
+          <button className="compact-nav__item" onClick={() => setView("memory")} aria-label={tr("myEgypt", L, ctx.age)}><Crown /></button>
         </nav>
-        {templeOpen && <TempleSheet L={L} discoveries={discoveries} onClose={() => setTempleOpen(false)} onDiscover={() => { setTempleOpen(false); setView("need"); }} />}
+        {templeOpen && <TempleSheet L={L} age={ctx.age} discoveries={discoveries} onClose={() => setTempleOpen(false)} onDiscover={() => { setTempleOpen(false); setView("need"); }} />}
       </main>
     );
   }
@@ -181,8 +181,8 @@ function GemExperience() {
 }
 
 /** Text that reads as hieroglyphs until the language is decoded, then morphs into the visitor's tongue. */
-function T({ k, ctx }: { k: Key; ctx: { L: Lang; decoded: boolean } }) {
-  const text = tr(k, ctx.L);
+function T({ k, ctx }: { k: Key; ctx: { L: Lang; decoded: boolean; age: Age } }) {
+  const text = tr(k, ctx.L, ctx.age);
   if (ctx.decoded) return <span className="tx-real">{text}</span>;
   return <span className="glyph-text" aria-label="untranslated">{toGlyphs(tr(k, "en"))}</span>;
 }
@@ -199,7 +199,7 @@ function LivingCity({ discoveries, onTemple, focus, still }: { discoveries: Know
   );
 }
 
-function Locked({ ctx, onScan }: { ctx: { L: Lang; decoded: boolean }; onScan: () => void }) {
+function Locked({ ctx, onScan }: { ctx: { L: Lang; decoded: boolean; age: Age }; onScan: () => void }) {
   return (
     <main className="opening-screen">
       <div className="translation-alert" role="status"><span className="pulse-dot" />TRANSLATION NEEDED · <span dir="rtl">الترجمة مطلوبة</span></div>
@@ -235,7 +235,7 @@ function Rosetta({ onPick, picked }: { onPick: (l: Lang) => void; picked: Lang |
   );
 }
 
-function AgePick({ ctx, onPick }: { ctx: { L: Lang; decoded: boolean }; onPick: (a: Age) => void }) {
+function AgePick({ ctx, onPick }: { ctx: { L: Lang; decoded: boolean; age: Age }; onPick: (a: Age) => void }) {
   const ages: Age[] = ["child", "teen", "adult"];
   return (
     <main className="focus-screen age-screen">
@@ -245,7 +245,7 @@ function AgePick({ ctx, onPick }: { ctx: { L: Lang; decoded: boolean }; onPick: 
   );
 }
 
-function ScanScreen({ ctx, scanning, onBack, onScan }: { ctx: { L: Lang; decoded: boolean }; scanning: boolean; onBack: () => void; onScan: () => void }) {
+function ScanScreen({ ctx, scanning, onBack, onScan }: { ctx: { L: Lang; decoded: boolean; age: Age }; scanning: boolean; onBack: () => void; onScan: () => void }) {
   return (
     <main className="focus-screen scan-screen">
       <header className="top-bar"><button onClick={onBack} aria-label="Back"><ArrowLeft /></button><strong><T k="discovery" ctx={ctx} /></strong><span /></header>
@@ -256,14 +256,14 @@ function ScanScreen({ ctx, scanning, onBack, onScan }: { ctx: { L: Lang; decoded
       <div className="focus-footer">
         <p><T k="museumHolds" ctx={ctx} /></p>
         <Button variant="discovery" size="museum" className="w-full" disabled={scanning} onClick={onScan}>
-          {ctx.decoded ? tr("simulate", ctx.L) : "SCAN"}
+          {ctx.decoded ? tr("simulate", ctx.L, ctx.age) : "SCAN"}
         </Button>
       </div>
     </main>
   );
 }
 
-function ArtifactReveal({ ctx, k, alt, restored, onRestore, onChanged }: { ctx: { L: Lang }; k: Knowledge; alt: boolean; restored: boolean; onRestore: () => void; onChanged: () => void }) {
+function ArtifactReveal({ ctx, k, alt, restored, onRestore, onChanged }: { ctx: { L: Lang; age: Age }; k: Knowledge; alt: boolean; restored: boolean; onRestore: () => void; onChanged: () => void }) {
   const Icon = icons[k];
   const { L } = ctx;
   const text = alt ? artifactAlt[k] : artifactText[k];
@@ -271,29 +271,29 @@ function ArtifactReveal({ ctx, k, alt, restored, onRestore, onChanged }: { ctx: 
     <main className="artifact-screen">
       <div className="artifact-aura"><span /><span /><span /></div>
       <div className="artifact-object"><Icon /></div>
-      <p className="eyebrow">{tr("found", L)}</p>
+      <p className="eyebrow">{tr("found", L, ctx.age)}</p>
       <h1>{text.name[L]}</h1>
-      <div className="knowledge-lockup"><Icon /><span><small>{tr("knowledge", L)}</small><strong>{knowledgeName[k][L]}</strong></span></div>
-      <p className="artifact-detail">{text.detail[L]}</p>
+      <div className="knowledge-lockup"><Icon /><span><small>{tr("knowledge", L, ctx.age)}</small><strong>{knowledgeName[k][L]}</strong></span></div>
+      <p className="artifact-detail">{artifactDetailForAge(k, L, ctx.age, alt)}</p>
       {!restored ? (
-        <Button variant="discovery" size="museum" className="w-full" onClick={onRestore}><Sparkles /> {tr("restore", L)} {knowledgeName[k][L]}</Button>
+        <Button variant="discovery" size="museum" className="w-full" onClick={onRestore}><Sparkles /> {tr("restore", L, ctx.age)} {knowledgeName[k][L]}</Button>
       ) : (
-        <div className="restored-action"><div><Check /> {knowledgeName[k][L]} ✓</div><Button variant="discovery" size="museum" className="w-full" onClick={onChanged}>{tr("seeChange", L)} <ChevronRight /></Button></div>
+        <div className="restored-action"><div><Check /> {knowledgeName[k][L]} ✓</div><Button variant="discovery" size="museum" className="w-full" onClick={onChanged}>{tr("seeChange", L, ctx.age)} <ChevronRight /></Button></div>
       )}
     </main>
   );
 }
 
-function ReactionBanner({ L, k }: { L: Lang; k: Knowledge }) {
+function ReactionBanner({ L, age, k }: { L: Lang; age: Age; k: Knowledge }) {
   return (
     <div className="reaction-banner">
-      <Sparkles /><small>{tr("inAction", L)}</small><strong>{knowledgeName[k][L]}</strong>
-      <p>{artifactText[k].reaction[L]}</p>
+      <Sparkles /><small>{tr("inAction", L, age)}</small><strong>{knowledgeName[k][L]}</strong>
+      <p>{reactionForAge(k, L, age)}</p>
     </div>
   );
 }
 
-function NeedScreen({ ctx, need, age, onBack, onDiscover }: { ctx: { L: Lang }; need: Knowledge | null; age: Age; onBack: () => void; onDiscover: () => void }) {
+function NeedScreen({ ctx, need, age, onBack, onDiscover }: { ctx: { L: Lang; age: Age }; need: Knowledge | null; age: Age; onBack: () => void; onDiscover: () => void }) {
   const { L } = ctx;
   const riddle = useServerFn(getRiddle);
   const [problem, setProblem] = useState<string | null>(null);
@@ -302,13 +302,13 @@ function NeedScreen({ ctx, need, age, onBack, onDiscover }: { ctx: { L: Lang }; 
 
   useEffect(() => {
     if (!need) return;
-    const key = `gem-riddle-easy-v3-${need}-${L}-${age}`;
+    const key = `gem-riddle-age-v4-${need}-${L}-${age}`;
     const cached = sessionStorage.getItem(key);
     if (cached) { setProblem(cached); return; }
     let alive = true;
     riddle({ data: { knowledge: need, language: langName, age, mode: "problem", hintLevel: 0 } })
       .then((r) => { if (alive) { setProblem(r.text); sessionStorage.setItem(key, r.text); } })
-      .catch(() => { if (alive) setProblem(fallbackProblem[need][L]); });
+      .catch(() => { if (alive) setProblem(problemForAge(need, L, ctx.age)); });
     return () => { alive = false; };
   }, [need, L, age]);
 
@@ -318,9 +318,9 @@ function NeedScreen({ ctx, need, age, onBack, onDiscover }: { ctx: { L: Lang }; 
     if (!level) return;
     // Show the concrete clue immediately. AI can tailor it without blocking play.
     const index = level - 1;
-    const clue = fallbackHints[need][L][index] ?? fallbackHints[need][L][2];
+    const clue = hintsForAge(need, L, age)[index] ?? hintsForAge(need, L, age)[2];
     setHints((h) => [...h, clue]);
-    if (level === 3) return; // The final clue always names the exact scanned artifact.
+    if (level === 3 || age === "child") return; // The final clue always names the exact scanned artifact.
     void riddle({ data: { knowledge: need, language: langName, age, mode: "hint", hintLevel: level } })
       .then((r) => setHints((h) => h.map((text, i) => i === index ? r.text : text)))
       .catch(() => { /* the immediately available clue stays visible */ });
@@ -328,23 +328,23 @@ function NeedScreen({ ctx, need, age, onBack, onDiscover }: { ctx: { L: Lang }; 
 
   return (
     <main className="focus-screen need-screen">
-      <header className="top-bar"><Button variant="ghost" size="icon" onClick={onBack} aria-label="Back"><ArrowLeft /></Button><strong>{tr("problem", L)}</strong><span /></header>
+      <header className="top-bar"><Button variant="ghost" size="icon" onClick={onBack} aria-label="Back"><ArrowLeft /></Button><strong>{tr("problem", L, ctx.age)}</strong><span /></header>
       <div className="need-visual"><span className="need-mystery">?</span></div>
       <div className="need-copy">
-        <p className="eyebrow">{tr("peopleSay", L)}</p>
-        <p className="problem-text">{problem ?? fallbackProblem[need][L]}</p>
-        <p className="problem-q">{tr("whatSolves", L)}</p>
+        <p className="eyebrow">{tr("peopleSay", L, ctx.age)}</p>
+        <p className="problem-text">{problem ?? problemForAge(need, L, ctx.age)}</p>
+        <p className="problem-q">{tr("whatSolves", L, ctx.age)}</p>
       </div>
-      <div className="hint-levels" aria-label={tr("hint", L)}>
+      <div className="hint-levels" aria-label={tr("hint", L, ctx.age)}>
         {(["hintUse", "hintLook", "hintAnswer"] as const).map((key, i) => <span key={key} className={hints.length > i ? "is-revealed" : ""}><b>{i + 1}</b><small>{tr(key, L)}</small></span>)}
       </div>
       <div className="hint-list" aria-live="polite">
-        {hints.map((h, i) => <div key={i} className="hint-card"><Lightbulb /><span><small>{tr("hintN", L)} {i + 1} · {tr((["hintUse", "hintLook", "hintAnswer"] as const)[i] ?? "hintAnswer", L)}</small>{h}</span></div>)}
+        {hints.map((h, i) => <div key={i} className="hint-card"><Lightbulb /><span><small>{tr("hintN", L, ctx.age)} {i + 1} · {tr((["hintUse", "hintLook", "hintAnswer"] as const)[i] ?? "hintAnswer", L)}</small>{h}</span></div>)}
       </div>
       {level && (
         <Button variant="outline" className="hint-button" onClick={askHint}><Lightbulb /> {tr(hints.length ? "nextHint" : "hint", L)} · {level}/3</Button>
       )}
-      <Button variant="discovery" size="museum" className="w-full" onClick={onDiscover}><ScanLine /> {tr("startDiscovery", L)}</Button>
+      <Button variant="discovery" size="museum" className="w-full" onClick={onDiscover}><ScanLine /> {tr("startDiscovery", L, ctx.age)}</Button>
     </main>
   );
 }
@@ -354,35 +354,35 @@ function MemoryRedirect({ onBack }: { onBack: () => void }) {
   return null;
 }
 
-function MemoryScreen({ ctx, discoveries, onBack, onReset }: { ctx: { L: Lang }; discoveries: Knowledge[]; onBack: () => void; onReset: () => void }) {
+function MemoryScreen({ ctx, discoveries, onBack, onReset }: { ctx: { L: Lang; age: Age }; discoveries: Knowledge[]; onBack: () => void; onReset: () => void }) {
   const { L } = ctx;
   const progress = Math.round((discoveries.length / ORDER.length) * 100);
-  const identity = discoveries.includes("Writing") && discoveries.includes("Architecture") ? "The Builders’ Kingdom" : discoveries.length ? "The River Civilization" : "A Kingdom Forgotten";
+  const identity = identityForAge(discoveries, L, ctx.age);
   return (
     <main className="focus-screen memory-screen">
-      <header className="top-bar"><button onClick={onBack} aria-label="Back"><ArrowLeft /></button><strong>{tr("myEgypt", L)}</strong><span /></header>
+      <header className="top-bar"><button onClick={onBack} aria-label="Back"><ArrowLeft /></button><strong>{tr("myEgypt", L, ctx.age)}</strong><span /></header>
       <div className="memory-preview"><LivingCity discoveries={discoveries} still /></div>
-      <div className="memory-progress"><strong>{progress}%</strong><span>{tr("knowledgeRestored", L)}</span><div><i style={{ width: `${progress}%` }} /></div></div>
+      <div className="memory-progress"><strong>{progress}%</strong><span>{tr("knowledgeRestored", L, ctx.age)}</span><div><i style={{ width: `${progress}%` }} /></div></div>
       <div className="memory-metrics">
-        <span><strong>{discoveries.length}</strong><small>{tr("artifacts", L)}</small></span>
-        <span><strong>{discoveries.length}</strong><small>{tr("areas", L)}</small></span>
-        <span><strong>{Math.floor(discoveries.length / 2)}</strong><small>{tr("structures", L)}</small></span>
+        <span><strong>{discoveries.length}</strong><small>{tr("artifacts", L, ctx.age)}</small></span>
+        <span><strong>{discoveries.length}</strong><small>{tr("areas", L, ctx.age)}</small></span>
+        <span><strong>{Math.floor(discoveries.length / 2)}</strong><small>{tr("structures", L, ctx.age)}</small></span>
       </div>
-      <div className="identity"><small>{tr("identity", L)}</small><h1>{identity}</h1><p>{tr("shaped", L)}</p></div>
-      <button className="reset-link" onClick={onReset}>{tr("restart", L)}</button>
+      <div className="identity"><small>{tr("identity", L, ctx.age)}</small><h1>{identity}</h1><p>{tr("shaped", L, ctx.age)}</p></div>
+      <button className="reset-link" onClick={onReset}>{tr("restart", L, ctx.age)}</button>
     </main>
   );
 }
 
-function TempleSheet({ L, discoveries, onClose, onDiscover }: { L: Lang; discoveries: Knowledge[]; onClose: () => void; onDiscover: () => void }) {
+function TempleSheet({ L, age, discoveries, onClose, onDiscover }: { L: Lang; age: Age; discoveries: Knowledge[]; onClose: () => void; onDiscover: () => void }) {
   const req: Knowledge[] = ["Religion", "Architecture", "Writing"];
   const complete = req.every((r) => discoveries.includes(r));
   return (
     <div className="sheet-backdrop" onClick={onClose} role="presentation">
       <section className="temple-sheet" onClick={(e) => e.stopPropagation()}>
-        <div className="sheet-handle" /><Landmark /><h2>{complete ? tr("templeDone", L) : tr("temple", L)}</h2>
+        <div className="sheet-handle" /><Landmark /><h2>{complete ? tr("templeDone", L, age) : tr("temple", L, age)}</h2>
         <div className="requirements">{req.map((r) => <span key={r} className={discoveries.includes(r) ? "is-known" : ""}>{discoveries.includes(r) ? <Check /> : <CircleDot />} {discoveries.includes(r) ? knowledgeName[r][L] : "?"}</span>)}</div>
-        {!complete && <Button variant="discovery" size="museum" className="w-full" onClick={onDiscover}>{tr("findNeed", L)} <ChevronRight /></Button>}
+        {!complete && <Button variant="discovery" size="museum" className="w-full" onClick={onDiscover}>{tr("findNeed", L, age)} <ChevronRight /></Button>}
       </section>
     </div>
   );
