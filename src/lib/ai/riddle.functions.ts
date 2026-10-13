@@ -4,7 +4,7 @@ import { z } from "zod";
 const Input = z.object({
   knowledge: z.string(),
   language: z.string(),
-  age: z.string(),
+  age: z.enum(["child", "teen", "adult"]),
   mode: z.enum(["problem", "hint"]),
   hintLevel: z.number().int().min(0).max(3),
 });
@@ -18,6 +18,11 @@ export const getRiddle = createServerFn({ method: "POST" })
     const { createOpenAI } = await import("@ai-sdk/openai");
     const { streamText } = await import("ai");
     const { createLovableAiGatewayRunIdFetch } = await import("./run-id.server.ts");
+    const ageVoice = {
+      child: "Audience under 12: reading age 6–9. Use concrete familiar words and direct questions. Maximum 18 words total, sentences of at most 9 words. No metaphors, death, hunger, threats, technical terms, or abstract ideas. Say plants instead of crops, town instead of civilization. Arabic must be friendly spoken Egyptian Arabic. French uses tu.",
+      teen: "Audience 12–17: curious, conversational, respectful, never babyish. Explain one clear cause and effect. At most 28 words in two short sentences. No flowery language. Arabic uses natural Egyptian phrasing. French uses tu.",
+      adult: "Audience 18+: concise museum-quality language, precise but accessible. At most 35 words in two short sentences. No jargon without explanation. Arabic is clear natural Arabic; French uses vous. Never make the problem more frightening or harder because of age.",
+    }[data.age];
     const run = createLovableAiGatewayRunIdFetch();
     const provider = createOpenAI({
       baseURL: "https://ai.gateway.lovable.dev/v1",
@@ -31,7 +36,7 @@ export const getRiddle = createServerFn({ method: "POST" })
         : `Give museum clue level ${data.hintLevel} for missing ${data.knowledge}. The matching artifacts are Agriculture: Ancient Irrigation Tool; Religion: Temple Relief; Architecture: Stone Column Fragment; Writing: Papyrus Fragment; Government: Royal Seal; Trade: Trading Vessel; Medicine: Medical Papyrus; Military: Ancient Weapon. Level 1: say ONLY what people can DO with the object, starting "Look for something that helps people...". Level 2: describe its visible shape and material, clearly more specific than level 1, without naming the artifact or knowledge. Level 3: name the matching artifact explicitly. One practical short sentence, maximum 25 words. Never invent gallery locations or displays. For Arabic use friendly Egyptian phrasing like "دور على حاجة يقدروا ..." rather than abstract riddles.`;
     const result = streamText({
       model: provider.responses("openai/gpt-6-astra"),
-      instructions: `You are the friendly voice of an Ancient Egyptian settlement speaking to a museum visitor. Write ONLY in ${data.language}. Age group: ${data.age}. For children use very short familiar words; for teens and adults stay concise and practical. Make the experience easy and encouraging. Plain text, no markdown, no quotes.`,
+      instructions: `You are the friendly voice of an Ancient Egyptian settlement speaking to a museum visitor. Write ONLY in ${data.language}. ${ageVoice} Keep artifact names accurate. Follow the exact obstacle and hint level. Make the experience easy and encouraging. Plain text, no markdown, no quotes.`,
       prompt: task,
       providerOptions: { openai: { store: false, forceReasoning: true, reasoningEffort: "low", reasoningSummary: "auto", include: ["reasoning.encrypted_content"] } },
     });
