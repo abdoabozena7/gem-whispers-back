@@ -15,3 +15,6 @@
 - Journey progress persists in browser localStorage only, so visitors resume without accounts.
 - Hint progression uses a shared bounded level helper and immediately available localized clues; AI may personalize early clues but the final clue stays deterministic so visitors always find the matching artifact.
 - Imported Egyptian column artwork is cloned and normalized per instance inside a scene-local Suspense boundary so asset loading never hides the rest of the city.
+- Narrative resolvers select localized age-specific problems, clues, artifact explanations, reactions, and identities from i18n.ts so fallback and AI experiences share the same audience.
+- Fine static city details use merged geometry and crops/reeds use instancing to increase visual detail without multiplying draw calls.
+- Imported city props are cloned and normalized per instance inside scene-local Suspense boundaries so model loading does not blank the city.
