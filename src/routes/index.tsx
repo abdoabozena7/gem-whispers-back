@@ -137,7 +137,7 @@ function GemExperience() {
     );
   } else if (view === "artifact") {
     body = (
-      <ArtifactReveal ctx={ctx} k={current} alt={false} restored={discoveries.includes(current)}
+      <ArtifactReveal ctx={ctx} k={current} alt={!need && scanCount % 2 === 1} restored={discoveries.includes(current)}
         onRestore={() => { playRestore(); setDiscoveries((d) => (d.includes(current) ? d : [...d, current])); }}
         onChanged={() => { playReact(); setReaction(current); setView("city"); }} />
     );
@@ -302,6 +302,7 @@ function NeedScreen({ ctx, need, age, onBack, onDiscover }: { ctx: { L: Lang; ag
 
   useEffect(() => {
     if (!need) return;
+    if (age === "child") { setProblem(problemForAge(need, L, age)); return; }
     const key = `gem-riddle-age-v4-${need}-${L}-${age}`;
     const cached = sessionStorage.getItem(key);
     if (cached) { setProblem(cached); return; }
@@ -336,13 +337,13 @@ function NeedScreen({ ctx, need, age, onBack, onDiscover }: { ctx: { L: Lang; ag
         <p className="problem-q">{tr("whatSolves", L, ctx.age)}</p>
       </div>
       <div className="hint-levels" aria-label={tr("hint", L, ctx.age)}>
-        {(["hintUse", "hintLook", "hintAnswer"] as const).map((key, i) => <span key={key} className={hints.length > i ? "is-revealed" : ""}><b>{i + 1}</b><small>{tr(key, L)}</small></span>)}
+        {(["hintUse", "hintLook", "hintAnswer"] as const).map((key, i) => <span key={key} className={hints.length > i ? "is-revealed" : ""}><b>{i + 1}</b><small>{tr(key, L, age)}</small></span>)}
       </div>
       <div className="hint-list" aria-live="polite">
         {hints.map((h, i) => <div key={i} className="hint-card"><Lightbulb /><span><small>{tr("hintN", L, ctx.age)} {i + 1} · {tr((["hintUse", "hintLook", "hintAnswer"] as const)[i] ?? "hintAnswer", L)}</small>{h}</span></div>)}
       </div>
       {level && (
-        <Button variant="outline" className="hint-button" onClick={askHint}><Lightbulb /> {tr(hints.length ? "nextHint" : "hint", L)} · {level}/3</Button>
+        <Button variant="outline" className="hint-button" onClick={askHint}><Lightbulb /> {tr(hints.length ? "nextHint" : "hint", L, age)} · {level}/3</Button>
       )}
       <Button variant="discovery" size="museum" className="w-full" onClick={onDiscover}><ScanLine /> {tr("startDiscovery", L, ctx.age)}</Button>
     </main>

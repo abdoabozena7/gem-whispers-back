@@ -246,9 +246,6 @@ function Fields({ alive }: { alive: boolean }) {
             <planeGeometry args={[1.2, 1.2]} />
             <meshStandardMaterial map={alive ? green : dry} roughness={1} />
           </mesh>
-          <Grow on={alive} position={[x, 0.03, z]} speed={1.4 + i * 0.3}>
-
-          </Grow>
         </group>
       ))}
       <GrainRows alive={alive} color={palette.grain} still={still} />
