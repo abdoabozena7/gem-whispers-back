@@ -439,8 +439,8 @@ function Rig({ focus, still }: { focus?: SceneKnowledge | null | undefined; stil
   const look = useRef(new THREE.Vector3(0, 0, 0));
   useFrame(({ camera, clock }, d) => {
     const t = clock.elapsedTime;
-    const f: [number, number, number] = focus ? FOCUS_POINTS[focus] : [-1, 0, 0];
-    const zoom = focus ? 0.74 : 1.15;
+    const f: [number, number, number] = focus ? FOCUS_POINTS[focus] : [0, 0, -0.8];
+    const zoom = focus ? 1 : 1.65;
     const sway = still ? 0 : Math.sin(t * 0.15) * 0.3;
     const target = new THREE.Vector3(f[0] + 9 * zoom + sway, 8.5 * zoom + 1, f[2] + 11 * zoom);
     const k = 1 - Math.exp(-1.6 * Math.min(d, 0.05));

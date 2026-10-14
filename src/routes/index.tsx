@@ -340,7 +340,7 @@ function NeedScreen({ ctx, need, age, onBack, onDiscover }: { ctx: { L: Lang; ag
         {(["hintUse", "hintLook", "hintAnswer"] as const).map((key, i) => <span key={key} className={hints.length > i ? "is-revealed" : ""}><b>{i + 1}</b><small>{tr(key, L, age)}</small></span>)}
       </div>
       <div className="hint-list" aria-live="polite">
-        {hints.map((h, i) => <div key={i} className="hint-card"><Lightbulb /><span><small>{tr("hintN", L, ctx.age)} {i + 1} · {tr((["hintUse", "hintLook", "hintAnswer"] as const)[i] ?? "hintAnswer", L)}</small>{h}</span></div>)}
+        {hints.map((h, i) => <div key={i} className="hint-card"><Lightbulb /><span><small>{tr("hintN", L, ctx.age)} {i + 1} · {tr((["hintUse", "hintLook", "hintAnswer"] as const)[i] ?? "hintAnswer", L, age)}</small>{h}</span></div>)}
       </div>
       {level && (
         <Button variant="outline" className="hint-button" onClick={askHint}><Lightbulb /> {tr(hints.length ? "nextHint" : "hint", L, age)} · {level}/3</Button>
