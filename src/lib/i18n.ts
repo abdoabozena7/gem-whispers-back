@@ -61,6 +61,18 @@ const dict = {
   inAction: { en: "KNOWLEDGE IN ACTION", ar: "المعرفة تعمل", fr: "LE SAVOIR AGIT" },
   before: { en: "BEFORE", ar: "قبل", fr: "AVANT" },
   after: { en: "AFTER", ar: "بعد", fr: "APRÈS" },
+  level: { en: "LEVEL", ar: "المستوى", fr: "NIVEAU" },
+  levelUp: { en: "YOUR EGYPT EVOLVES", ar: "مصر بتاعتك بتتطور", fr: "L’ÉGYPTE ÉVOLUE" },
+  chapter: { en: "DISCOVERY", ar: "الاكتشاف", fr: "DÉCOUVERTE" },
+  journey: { en: "YOUR JOURNEY", ar: "رحلتك", fr: "VOTRE PARCOURS" },
+  whereLook: { en: "WHERE SHOULD I LOOK?", ar: "أدور فين؟", fr: "OÙ CHERCHER ?" },
+  museumHelp: { en: "ASK A GEM GUIDE", ar: "اسأل مرشد المتحف", fr: "DEMANDER À UN GUIDE" },
+  locationUnverified: { en: "Demo object: its display location is not verified. Show this name to a GEM guide before searching.", ar: "قطعة في التجربة: مكان عرضها مش مؤكّد. ورّي الاسم ده لمرشد المتحف قبل ما تدور.", fr: "Objet de démonstration : emplacement non vérifié. Montrez ce nom à un guide avant de chercher." },
+  childLocation: { en: "Ask a grown-up to show this name to a museum guide. We do not know where this object is displayed.", ar: "خلّي حد كبير يورّي الاسم ده لمرشد المتحف. مش عارفين القطعة معروضة فين.", fr: "Demande à un adulte de montrer ce nom à un guide. On ne sait pas où cet objet est exposé." },
+  guideQuestion: { en: "Is this object on display? Where can I find it?", ar: "القطعة دي معروضة؟ أقدر ألاقيها فين؟", fr: "Cet objet est-il exposé ? Où puis-je le trouver ?" },
+  nextDiscovery: { en: "NEXT DISCOVERY", ar: "الاكتشاف الجاي", fr: "PROCHAINE DÉCOUVERTE" },
+  allRestored: { en: "EGYPT IS ALIVE", ar: "مصر رجعت للحياة", fr: "L’ÉGYPTE REVIT" },
+  close: { en: "Close", ar: "إغلاق", fr: "Fermer" },
 } satisfies Record<string, Record<Lang, string>>;
 
 export type Key = keyof typeof dict;
@@ -263,3 +275,28 @@ export function identityForAge(discoveries: Knowledge[], lang: Lang, age: Age) {
   ];
   return identities[builders ? 0 : discoveries.length ? 1 : 2]?.[lang] ?? "";
 }
+
+const civilizationStages: Localized[] = [
+  { en: "A sleeping settlement", ar: "مدينة مستنية الحياة", fr: "Une cité endormie" },
+  { en: "Life by the Nile", ar: "الحياة جنب النيل", fr: "La vie au bord du Nil" },
+  { en: "The builders awaken", ar: "البنّائين رجعوا", fr: "Les bâtisseurs s’éveillent" },
+  { en: "A thriving city", ar: "مدينة مليانة حياة", fr: "Une cité florissante" },
+  { en: "Egypt lives again", ar: "مصر رجعت للحياة", fr: "L’Égypte revit" },
+];
+export function civilizationLevel(count: number) {
+  return count >= 8 ? 5 : count >= 6 ? 4 : count >= 4 ? 3 : count >= 1 ? 2 : 1;
+}
+export function civilizationStage(count: number, lang: Lang) {
+  return civilizationStages[civilizationLevel(count) - 1]?.[lang] ?? "";
+}
+const voices: Record<Knowledge, Localized> = {
+  Agriculture: { en: "THE FARMER", ar: "الفلاح", fr: "LE CULTIVATEUR" },
+  Religion: { en: "YOUR NEIGHBOR", ar: "جارك", fr: "VOTRE VOISIN" },
+  Architecture: { en: "THE BUILDER", ar: "البنّاء", fr: "LE BÂTISSEUR" },
+  Writing: { en: "THE STORYTELLER", ar: "الحكّاء", fr: "LE CONTEUR" },
+  Government: { en: "THE WORKER", ar: "العامل", fr: "LE TRAVAILLEUR" },
+  Trade: { en: "THE BOAT KEEPER", ar: "صاحب المركب", fr: "LE BATELIER" },
+  Medicine: { en: "YOUR NEIGHBOR", ar: "جارك", fr: "VOTRE VOISIN" },
+  Military: { en: "THE GUARD", ar: "الحارس", fr: "LE GARDE" },
+};
+export const storyVoice = (k: Knowledge, lang: Lang) => voices[k][lang];
