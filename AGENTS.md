@@ -18,3 +18,5 @@
 - Narrative resolvers select localized age-specific problems, clues, artifact explanations, reactions, and identities from i18n.ts so fallback and AI experiences share the same audience.
 - Fine static city details use merged geometry and crops/reeds use instancing to increase visual detail without multiplying draw calls.
 - Imported city props are cloned and normalized per instance inside scene-local Suspense boundaries so model loading does not blank the city.
+- Derive civilization levels from unique restored knowledge and use the same resolver everywhere so levels remain consistent with saved discoveries.
+- Persist revealed clue counts with the local journey and keep museum location guidance deterministic and explicitly unverified until curator-confirmed locations exist.

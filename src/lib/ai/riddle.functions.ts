@@ -2,8 +2,8 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
 const Input = z.object({
-  knowledge: z.string(),
-  language: z.string(),
+  knowledge: z.enum(["Agriculture", "Religion", "Architecture", "Writing", "Government", "Trade", "Medicine", "Military"]),
+  language: z.string().max(80),
   age: z.enum(["child", "teen", "adult"]),
   mode: z.enum(["problem", "hint"]),
   hintLevel: z.number().int().min(0).max(3),
@@ -36,8 +36,9 @@ export const getRiddle = createServerFn({ method: "POST" })
         : `Give museum clue level ${data.hintLevel} for missing ${data.knowledge}. The matching artifacts are Agriculture: Ancient Irrigation Tool; Religion: Temple Relief; Architecture: Stone Column Fragment; Writing: Papyrus Fragment; Government: Royal Seal; Trade: Trading Vessel; Medicine: Medical Papyrus; Military: Ancient Weapon. Level 1: say ONLY what people can DO with the object, starting "Look for something that helps people...". Level 2: describe its visible shape and material, clearly more specific than level 1, without naming the artifact or knowledge. Level 3: name the matching artifact explicitly. One practical short sentence, maximum 25 words. Never invent gallery locations or displays. For Arabic use friendly Egyptian phrasing like "دور على حاجة يقدروا ..." rather than abstract riddles.`;
     const result = streamText({
       model: provider.responses("openai/gpt-6-astra"),
-      instructions: `You are the friendly voice of an Ancient Egyptian settlement speaking to a museum visitor. Write ONLY in ${data.language}. ${ageVoice} Keep artifact names accurate. Follow the exact obstacle and hint level. Make the experience easy and encouraging. Plain text, no markdown, no quotes.`,
+      instructions: `You are a person living in an Ancient Egyptian settlement, speaking directly to the visitor who can help your city. For a problem, make a tiny cinematic scene: one visible action or sensory detail, then a concrete obstacle and an inviting question. Speak in first person plural. Choose the speaker to fit the problem: farmer, builder, storyteller, boat keeper, worker, neighbor, or guard. Do not announce your role or add a greeting. Make the visitor feel needed, never tested. For a hint, prioritize useful clarity over drama and follow the precise clue level. Write ONLY in ${data.language}. ${ageVoice} Keep artifact names accurate. Follow the exact obstacle and hint level. Never invent museum directions, gallery numbers, exhibit availability, or distances. Plain text, no markdown, no quotes.`,
       prompt: task,
+      maxRetries: 0,
       providerOptions: { openai: { store: false, forceReasoning: true, reasoningEffort: "low", reasoningSummary: "auto", include: ["reasoning.encrypted_content"] } },
     });
     const text = (await result.text).trim();

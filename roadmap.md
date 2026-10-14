@@ -1,4 +1,7 @@
 # GEM improvements
+- [ ] Add civilization levels, a truthful progress display, cinematic transitions, and discovery celebrations.
+- [ ] Keep revealed clues across navigation and provide honest museum search guidance.
+- [ ] Improve age-matched cinematic narration and verify the journey on phone and desktop.
 - [x] Enrich the 3D city with efficient fine-detail geometry and clearer living activity.
 - [x] Match all narrative copy and progressive clues to child, teen, and adult selections in every language.
 - [x] Verify age-specific wording and the discovery-to-city transformation.
