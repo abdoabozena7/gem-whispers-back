@@ -2,14 +2,14 @@ import { ClientOnly, createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import {
   ArrowLeft, Building2, Check, ChevronRight, CircleDot, Crown, HeartPulse, Landmark, Lightbulb,
-  ScanLine, ScrollText, Shield, Ship, Sparkles, Wheat, type LucideIcon,
+  ScanLine, ScrollText, Shield, Ship, Sparkles, Wheat, MapPin, X, type LucideIcon,
 } from "lucide-react";
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { getRiddle } from "@/lib/ai/riddle.functions";
 import {
-  artifactAlt, artifactText, artifactDetailForAge, hintsForAge, identityForAge, problemForAge, reactionForAge, knowledgeName, LANGS, toGlyphs, tr,
+  artifactAlt, artifactText, artifactDetailForAge, hintsForAge, identityForAge, problemForAge, reactionForAge, knowledgeName, LANGS, toGlyphs, tr, civilizationLevel, civilizationStage, storyVoice,
   type Age, type Key, type Knowledge, type Lang,
 } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
@@ -42,7 +42,7 @@ const icons: Record<Knowledge, LucideIcon> = {
 };
 const STORAGE = "gem-journey-v2";
 
-type Saved = { discoveries: Knowledge[]; lang: Lang | null; age: Age | null };
+type Saved = { discoveries: Knowledge[]; lang: Lang | null; age: Age | null; clues?: Partial<Record<Knowledge, number>> };
 
 function GemExperience() {
   const [view, setView] = useState<View>("locked");
@@ -56,6 +56,7 @@ function GemExperience() {
   const [scanCount, setScanCount] = useState(0);
   const [reaction, setReaction] = useState<Knowledge | null>(null);
   const [templeOpen, setTempleOpen] = useState(false);
+  const [clues, setClues] = useState<Partial<Record<Knowledge, number>>>({});
   const templeFanfared = useRef(false);
 
   // Resume a saved journey (client only, after hydration).
@@ -67,6 +68,7 @@ function GemExperience() {
         setDiscoveries(s.discoveries ?? []);
         setLang(s.lang);
         setAge(s.age);
+        setClues(s.clues ?? {});
         if (s.lang && s.age) { setView("city"); setWelcome(true); }
         else if (s.lang) setView("age");
       }
@@ -76,8 +78,8 @@ function GemExperience() {
 
   useEffect(() => {
     if (!loaded) return;
-    localStorage.setItem(STORAGE, JSON.stringify({ discoveries, lang, age } satisfies Saved));
-  }, [loaded, discoveries, lang, age]);
+    try { localStorage.setItem(STORAGE, JSON.stringify({ discoveries, lang, age, clues } satisfies Saved)); } catch { /* journey still works if storage is unavailable */ }
+  }, [loaded, discoveries, lang, age, clues]);
 
   useEffect(() => {
     if (!reaction) return;
@@ -107,7 +109,7 @@ function GemExperience() {
 
   const reset = () => {
     localStorage.removeItem(STORAGE);
-    setDiscoveries([]); setLang(null); setAge(null); setView("locked");
+    setDiscoveries([]); setClues({}); setLang(null); setAge(null); setReaction(null); templeFanfared.current = false; setView("locked");
   };
 
   let body;
@@ -142,42 +144,42 @@ function GemExperience() {
         onChanged={() => { playReact(); setReaction(current); setView("city"); }} />
     );
   } else if (view === "need") {
-    body = <NeedScreen ctx={ctx} need={need} age={age ?? "adult"} onBack={() => setView("city")} onDiscover={() => setView("scan")} />;
+    body = <NeedScreen ctx={ctx} need={need} age={age ?? "adult"} revealed={need ? clues[need] ?? 0 : 0} onReveal={(count) => { if (need) setClues((c) => ({ ...c, [need]: count })); }} onBack={() => setView("city")} onDiscover={() => setView("scan")} />;
   } else if (view === "memory") {
     body = <MemoryScreen ctx={ctx} discoveries={discoveries} onBack={() => setView("city")} onReset={reset} />;
   } else {
     body = (
       <main className="app-shell">
         <header className="city-header">
-          <div className="city-header__title"><span>{tr("yourCiv", L, ctx.age)}</span><strong>{tr("living", L, ctx.age)}</strong></div>
-          <button className="progress-medallion" onClick={() => setView("memory")} aria-label={`${progress}%`}>
-            <span>{progress}%</span><small>{tr("restored", L, ctx.age)}</small>
-          </button>
+          <div className="city-header__title"><span>𓂀 GEM · {tr("yourCiv", L, ctx.age)}</span><strong>{tr("living", L, ctx.age)}</strong></div>
+          <Button variant="ghost" className="level-emblem" onClick={() => setView("memory")} aria-label={tr("myEgypt", L, ctx.age)}><Crown /><span><small>{tr("level", L)}</small><b>{civilizationLevel(discoveries.length)}</b></span></Button>
+          <div className="journey-hud"><span>{civilizationStage(discoveries.length, L)}</span><strong>{progress}%</strong><progress value={discoveries.length} max={8} aria-label={tr("knowledgeRestored", L, ctx.age)} /></div>
         </header>
         <div className="city-stage-wrap">
           <LivingCity discoveries={discoveries} focus={reaction} onTemple={() => setTempleOpen(true)} />
-          {reaction && <ReactionBanner L={L} age={ctx.age} k={reaction} />}
+          {reaction && <><div className="restoration-flash" aria-hidden="true" /><ReactionBanner L={L} age={ctx.age} k={reaction} count={discoveries.length} /></>}
           {welcome && !reaction && <div className="welcome-toast">{tr("welcomeBack", L, ctx.age)}</div>}
         </div>
         <section className="city-actions">
           {need && (
-            <button className="need-strip" onClick={() => setView("need")}>
-              <span><small>{tr("problem", L, ctx.age)}</small><strong className="need-teaser">{problemForAge(need, L, ctx.age).split(/[.!?؟]/)[0]}…</strong></span><ChevronRight />
-            </button>
+            <Button variant="ghost" className="need-strip" onClick={() => setView("need")}>
+              <span><small>{tr("chapter", L)} {discoveries.length + 1}/8 · {storyVoice(need, L)}</small><strong className="need-teaser">{problemForAge(need, L, ctx.age).split(/[.!?؟]/)[0]}…</strong></span><ChevronRight />
+            </Button>
           )}
+          {!need && <p className="journey-complete"><Sparkles />{tr("allRestored", L)}</p>}
           <Button variant="discovery" size="museum" className="w-full" onClick={() => setView("scan")}><ScanLine /> {tr("discover", L, ctx.age)}</Button>
         </section>
         <nav className="compact-nav" aria-label="Main navigation">
-          <button className="compact-nav__item is-active" aria-label={tr("living", L, ctx.age)}><CircleDot /></button>
-          <button className="compact-nav__item" onClick={() => setView("need")} aria-label={tr("problem", L, ctx.age)}><Lightbulb /></button>
-          <button className="compact-nav__item" onClick={() => setView("memory")} aria-label={tr("myEgypt", L, ctx.age)}><Crown /></button>
+          <Button variant="ghost" className="compact-nav__item is-active" aria-label={tr("living", L, ctx.age)}><CircleDot /><small>{tr("living", L, ctx.age)}</small></Button>
+          <Button variant="ghost" className="compact-nav__item" onClick={() => setView(need ? "need" : "memory")} aria-label={tr("problem", L, ctx.age)}><Lightbulb /><small>{tr("hintN", L)}</small></Button>
+          <Button variant="ghost" className="compact-nav__item" onClick={() => setView("memory")} aria-label={tr("myEgypt", L, ctx.age)}><Crown /><small>{tr("myEgypt", L, ctx.age)}</small></Button>
         </nav>
         {templeOpen && <TempleSheet L={L} age={ctx.age} discoveries={discoveries} onClose={() => setTempleOpen(false)} onDiscover={() => { setTempleOpen(false); setView("need"); }} />}
       </main>
     );
   }
 
-  return <div dir={L === "ar" ? "rtl" : "ltr"} lang={L} className="gem-root" data-decoded={decoded}>{body}</div>;
+  return <div dir={L === "ar" ? "rtl" : "ltr"} lang={L} className="gem-root" data-decoded={decoded}><div key={view} className="screen-transition">{body}</div></div>;
 }
 
 /** Text that reads as hieroglyphs until the language is decoded, then morphs into the visitor's tongue. */
@@ -284,26 +286,30 @@ function ArtifactReveal({ ctx, k, alt, restored, onRestore, onChanged }: { ctx: 
   );
 }
 
-function ReactionBanner({ L, age, k }: { L: Lang; age: Age; k: Knowledge }) {
+function ReactionBanner({ L, age, k, count }: { L: Lang; age: Age; k: Knowledge; count: number }) {
+  const evolved = civilizationLevel(count) > civilizationLevel(count - 1);
   return (
-    <div className="reaction-banner">
-      <Sparkles /><small>{tr("inAction", L, age)}</small><strong>{knowledgeName[k][L]}</strong>
+    <div className="reaction-banner" role="status">
+      <Sparkles /><small>{tr(evolved ? "levelUp" : "inAction", L, age)}</small><strong>{evolved ? `${tr("level", L)} ${civilizationLevel(count)} · ${civilizationStage(count, L)}` : knowledgeName[k][L]}</strong>
       <p>{reactionForAge(k, L, age)}</p>
     </div>
   );
 }
 
-function NeedScreen({ ctx, need, age, onBack, onDiscover }: { ctx: { L: Lang; age: Age }; need: Knowledge | null; age: Age; onBack: () => void; onDiscover: () => void }) {
+function NeedScreen({ ctx, need, age, revealed, onReveal, onBack, onDiscover }: { ctx: { L: Lang; age: Age }; need: Knowledge | null; age: Age; revealed: number; onReveal: (count: number) => void; onBack: () => void; onDiscover: () => void }) {
   const { L } = ctx;
   const riddle = useServerFn(getRiddle);
   const [problem, setProblem] = useState<string | null>(null);
-  const [hints, setHints] = useState<string[]>([]);
+  const [hints, setHints] = useState<string[]>(() => need ? hintsForAge(need, L, age).slice(0, Math.min(3, Math.max(0, revealed))) : []);
+  const [locationOpen, setLocationOpen] = useState(false);
+  const aliveRef = useRef(true);
+  useEffect(() => { aliveRef.current = true; return () => { aliveRef.current = false; }; }, []);
   const langName = LANGS.find((l) => l.id === L)?.ai ?? "English";
 
   useEffect(() => {
     if (!need) return;
     if (age === "child") { setProblem(problemForAge(need, L, age)); return; }
-    const key = `gem-riddle-age-v4-${need}-${L}-${age}`;
+    const key = `gem-riddle-cinema-v5-${need}-${L}-${age}`;
     const cached = sessionStorage.getItem(key);
     if (cached) { setProblem(cached); return; }
     let alive = true;
@@ -321,18 +327,19 @@ function NeedScreen({ ctx, need, age, onBack, onDiscover }: { ctx: { L: Lang; ag
     const index = level - 1;
     const clue = hintsForAge(need, L, age)[index] ?? hintsForAge(need, L, age)[2];
     setHints((h) => [...h, clue]);
+    onReveal(level);
     if (level === 3 || age === "child") return; // The final clue always names the exact scanned artifact.
     void riddle({ data: { knowledge: need, language: langName, age, mode: "hint", hintLevel: level } })
-      .then((r) => setHints((h) => h.map((text, i) => i === index ? r.text : text)))
+      .then((r) => { if (aliveRef.current) setHints((h) => h.map((text, i) => i === index ? r.text : text)); })
       .catch(() => { /* the immediately available clue stays visible */ });
   };
 
   return (
     <main className="focus-screen need-screen">
       <header className="top-bar"><Button variant="ghost" size="icon" onClick={onBack} aria-label="Back"><ArrowLeft /></Button><strong>{tr("problem", L, ctx.age)}</strong><span /></header>
-      <div className="need-visual"><span className="need-mystery">?</span></div>
+      <div className="story-portrait" aria-hidden="true"><span>𓂀</span><i /><i /><i /></div>
       <div className="need-copy">
-        <p className="eyebrow">{tr("peopleSay", L, ctx.age)}</p>
+        <p className="eyebrow">{storyVoice(need, L)}</p>
         <p className="problem-text">{problem ?? problemForAge(need, L, ctx.age)}</p>
         <p className="problem-q">{tr("whatSolves", L, ctx.age)}</p>
       </div>
@@ -345,6 +352,8 @@ function NeedScreen({ ctx, need, age, onBack, onDiscover }: { ctx: { L: Lang; ag
       {level && (
         <Button variant="outline" className="hint-button" onClick={askHint}><Lightbulb /> {tr(hints.length ? "nextHint" : "hint", L, age)} · {level}/3</Button>
       )}
+      <Button variant="quiet" className="location-button" onClick={() => setLocationOpen((open) => !open)} aria-expanded={locationOpen}><MapPin />{tr("whereLook", L)}<ChevronRight /></Button>
+      {locationOpen && <section className="museum-guidance" aria-label={tr("museumHelp", L)}><small><MapPin />{tr("museumHelp", L)}</small><h2>{artifactText[need].name[L]}</h2><p>{tr(age === "child" ? "childLocation" : "locationUnverified", L)}</p><blockquote>{tr("guideQuestion", L)}</blockquote></section>}
       <Button variant="discovery" size="museum" className="w-full" onClick={onDiscover}><ScanLine /> {tr("startDiscovery", L, ctx.age)}</Button>
     </main>
   );
@@ -364,6 +373,8 @@ function MemoryScreen({ ctx, discoveries, onBack, onReset }: { ctx: { L: Lang; a
       <header className="top-bar"><button onClick={onBack} aria-label="Back"><ArrowLeft /></button><strong>{tr("myEgypt", L, ctx.age)}</strong><span /></header>
       <div className="memory-preview"><LivingCity discoveries={discoveries} still /></div>
       <div className="memory-progress"><strong>{progress}%</strong><span>{tr("knowledgeRestored", L, ctx.age)}</span><div><i style={{ width: `${progress}%` }} /></div></div>
+      <div className="memory-level"><Crown /><strong>{tr("level", L)} {civilizationLevel(discoveries.length)}</strong><span>{civilizationStage(discoveries.length, L)}</span></div>
+      <ol className="discovery-trail" aria-label={tr("journey", L)}>{ORDER.map((k, i) => { const Icon = icons[k]; const found = discoveries.includes(k); const next = ORDER.find((entry) => !discoveries.includes(entry)) === k; return <li key={k} className={cn(found && "is-found", next && "is-next")}><span>{found ? <Check /> : <Icon />}</span><div><small>{tr("chapter", L)} {i + 1}</small><strong>{found ? artifactText[k].name[L] : next ? tr("nextDiscovery", L) : toGlyphs(k)}</strong></div></li>; })}</ol>
       <div className="memory-metrics">
         <span><strong>{discoveries.length}</strong><small>{tr("artifacts", L, ctx.age)}</small></span>
         <span><strong>{discoveries.length}</strong><small>{tr("areas", L, ctx.age)}</small></span>
@@ -381,6 +392,7 @@ function TempleSheet({ L, age, discoveries, onClose, onDiscover }: { L: Lang; ag
   return (
     <div className="sheet-backdrop" onClick={onClose} role="presentation">
       <section className="temple-sheet" onClick={(e) => e.stopPropagation()}>
+        <Button variant="ghost" size="icon" className="sheet-close" onClick={onClose} aria-label={tr("close", L)}><X /></Button>
         <div className="sheet-handle" /><Landmark /><h2>{complete ? tr("templeDone", L, age) : tr("temple", L, age)}</h2>
         <div className="requirements">{req.map((r) => <span key={r} className={discoveries.includes(r) ? "is-known" : ""}>{discoveries.includes(r) ? <Check /> : <CircleDot />} {discoveries.includes(r) ? knowledgeName[r][L] : "?"}</span>)}</div>
         {!complete && <Button variant="discovery" size="museum" className="w-full" onClick={onDiscover}>{tr("findNeed", L, age)} <ChevronRight /></Button>}
