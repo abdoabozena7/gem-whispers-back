@@ -162,3 +162,81 @@ button { font: inherit; }
 [dir="rtl"] .top-bar svg,[dir="rtl"] .need-strip>svg{transform:scaleX(-1)}
 .opening-city .living-city{filter:saturate(.8) brightness(.9)}
 @media(min-width:700px){.app-shell,.focus-screen,.artifact-screen,.opening-screen{min-height:min(100svh,950px)}.app-shell{height:min(100svh,950px)}}
+
+/* Museum-game HUD: one shared progress track, civilization stages, cinematic feedback. */
+.screen-transition{animation:scene-enter .38s ease-out both}
+.city-header{row-gap:14px;padding-bottom:16px}
+.city-header__title span{color:var(--muted-foreground);letter-spacing:0;font-size:9px}
+.level-emblem{height:52px;min-width:76px;padding:6px 10px;border:1px solid var(--border);background:var(--card);color:var(--primary)}
+.level-emblem>svg{width:22px;height:22px}
+.level-emblem>span{display:grid;gap:2px;text-align:center}
+.level-emblem small{font-size:8px;color:var(--muted-foreground)}
+.level-emblem b{font-size:20px;line-height:1}
+.journey-hud{grid-column:1/-1;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;font-size:11px;align-items:center}
+.journey-hud span{color:var(--muted-foreground)}
+.journey-hud strong{color:var(--primary);font-variant-numeric:tabular-nums}
+.journey-hud progress{grid-column:1/-1;width:100%;height:5px;appearance:none;border:none;overflow:hidden;border-radius:2px;background:var(--secondary)}
+.journey-hud progress::-webkit-progress-bar{background:var(--secondary)}
+.journey-hud progress::-webkit-progress-value{background:var(--primary);transition:width .9s ease}
+.journey-hud progress::-moz-progress-bar{background:var(--primary)}
+.app-shell{grid-template-rows:auto minmax(320px,1fr) auto auto}
+.need-strip{height:auto;min-height:76px;white-space:normal;text-align:start;justify-content:stretch}
+.need-strip small{color:var(--nile-light);letter-spacing:0;font-size:9px}
+.need-strip strong{font-weight:500}
+.city-actions>.w-full{letter-spacing:0}
+.compact-nav{height:62px;padding-bottom:env(safe-area-inset-bottom)}
+.compact-nav__item{display:flex;flex-direction:column;gap:3px;height:100%;border-radius:0;padding:6px 2px}
+.compact-nav__item small{font-size:9px;white-space:normal;line-height:1.2}
+.compact-nav__item.is-active{color:var(--nile-light)}
+.restoration-flash{position:absolute;inset:0;pointer-events:none;z-index:3;background:color-mix(in oklab,var(--primary) 20%,transparent);animation:restoration-light 1.4s ease-out both}
+.reaction-banner{animation:reward-enter .45s ease-out both;border-color:var(--primary);padding:15px 16px}
+.reaction-banner small{letter-spacing:0}
+.reaction-banner strong{font-size:17px;line-height:1.4}
+.reaction-banner p{color:var(--foreground);font-size:12px}
+.journey-complete{display:flex;align-items:center;justify-content:center;gap:8px;color:var(--primary)!important}
+.story-portrait{width:72px;height:72px;position:relative;display:grid;place-items:center;margin:14px auto 10px;flex:none;border:1px solid var(--border);border-radius:50%;background:var(--card);color:var(--nile-light)}
+.story-portrait>span{font-family:"Noto Sans Egyptian Hieroglyphs",sans-serif;font-size:37px;line-height:1}
+.story-portrait i{position:absolute;width:3px;height:8px;background:var(--nile-light);bottom:10px;animation:voice-pulse 1.2s ease-in-out infinite}
+.story-portrait i:nth-of-type(1){left:28px;animation-delay:.15s}.story-portrait i:nth-of-type(2){left:34px;animation-delay:.3s}.story-portrait i:nth-of-type(3){left:40px;animation-delay:.45s}
+.need-copy .eyebrow{color:var(--nile-light);letter-spacing:0;font-size:10px}
+.need-screen .problem-text{min-height:0;font-size:19px!important;line-height:1.55!important;margin:14px 0}
+.need-screen .problem-q{margin-bottom:8px;font-size:12px}
+.hint-levels{margin:12px 0 10px;gap:8px}
+.hint-levels small{font-size:10px}
+.hint-levels .is-revealed{color:var(--nile-light);border-color:var(--nile-light)}
+.hint-levels .is-revealed b{background:var(--accent);color:var(--accent-foreground)}
+.hint-card{animation:clue-enter .3s ease both;padding:10px 12px;border-color:var(--border);font-size:13px}
+.hint-card small{letter-spacing:0;color:var(--nile-light);margin-bottom:4px}
+.hint-card svg{color:var(--nile-light)}
+.location-button{width:100%;min-height:46px;height:auto;white-space:normal;justify-content:flex-start;margin:0 0 12px;font-size:12px}
+.location-button>svg:last-child{margin-inline-start:auto}
+.museum-guidance{width:100%;text-align:start;border-inline-start:2px solid var(--nile-light);padding:2px 0 6px 14px;margin-bottom:16px;animation:clue-enter .25s both}
+[dir="rtl"] .museum-guidance{padding:2px 14px 6px 0}
+.museum-guidance small{display:flex;align-items:center;gap:6px;color:var(--nile-light);font-size:9px}
+.museum-guidance small svg{width:14px;height:14px}
+.museum-guidance h2{font-size:17px;line-height:1.3;margin:8px 0}
+.museum-guidance p,.museum-guidance blockquote{font-size:12px;line-height:1.5;color:var(--muted-foreground);margin:8px 0}
+.museum-guidance blockquote{color:var(--foreground);font-style:italic}
+.need-screen>.w-full:last-child{letter-spacing:0;white-space:normal;height:auto;min-height:56px;padding:12px 15px;line-height:1.4}
+.artifact-object{animation:artifact-float 4s ease-in-out infinite}
+.artifact-screen h1{animation:clue-enter .5s .1s both}
+.restored-action>div{animation:reward-enter .35s both}
+.memory-level{display:grid;grid-template-columns:auto 1fr;align-items:center;gap:5px 10px;border-bottom:1px solid var(--border);padding:12px 0 18px}
+.memory-level svg{grid-row:span 2;color:var(--primary)}
+.memory-level strong{font-size:15px}.memory-level span{font-size:12px;color:var(--muted-foreground)}
+.discovery-trail{list-style:none;padding:10px 0;margin:0}
+.discovery-trail li{display:grid;grid-template-columns:36px minmax(0,1fr);gap:12px;align-items:center;min-height:62px;position:relative;color:var(--muted-foreground)}
+.discovery-trail li:not(:last-child)::after{content:"";position:absolute;inset-inline-start:17px;top:42px;bottom:-14px;width:1px;background:var(--border)}
+.discovery-trail li>span{height:36px;width:36px;display:grid;place-items:center;border:1px solid var(--border);border-radius:50%;background:var(--background);z-index:1}
+.discovery-trail svg{width:16px;height:16px}.discovery-trail li>div{display:grid;gap:3px}.discovery-trail small{font-size:9px}.discovery-trail strong{font-size:13px;font-weight:500;overflow-wrap:anywhere}
+.discovery-trail .is-found>span{color:var(--primary);border-color:var(--primary)}.discovery-trail .is-found strong{color:var(--foreground)}.discovery-trail .is-next>span{color:var(--nile-light);border-color:var(--nile-light)}
+.sheet-close{position:absolute;top:12px;inset-inline-end:12px}.temple-sheet{position:relative}
+.gem-root button{letter-spacing:0}.gem-root button:active{transform:translateY(1px)}
+@keyframes scene-enter{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes clue-enter{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:none}}
+@keyframes reward-enter{from{opacity:0;transform:translateY(12px) scale(.97)}to{opacity:1;transform:none}}
+@keyframes restoration-light{0%{opacity:0}25%{opacity:1}100%{opacity:0}}
+@keyframes voice-pulse{50%{height:3px;opacity:.5}}
+@keyframes artifact-float{50%{transform:translateY(-8px)}}
+@media(max-width:360px){.city-header{padding-inline:14px}.city-actions{padding-inline:14px}.focus-screen{padding-inline:16px}.city-header__title strong{font-size:18px}}
+@media(prefers-reduced-motion:reduce){.screen-transition,.story-portrait i,.artifact-object,.reaction-banner,.restoration-flash{animation:none}.restoration-flash{display:none}}
