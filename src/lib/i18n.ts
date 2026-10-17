@@ -73,6 +73,16 @@ const dict = {
   nextDiscovery: { en: "NEXT DISCOVERY", ar: "الاكتشاف الجاي", fr: "PROCHAINE DÉCOUVERTE" },
   allRestored: { en: "EGYPT IS ALIVE", ar: "مصر رجعت للحياة", fr: "L’ÉGYPTE REVIT" },
   close: { en: "Close", ar: "إغلاق", fr: "Fermer" },
+  journeyMenu: { en: "Journey menu", ar: "قائمة الرحلة", fr: "Menu du voyage" },
+  rewards: { en: "EARNED CHAPTERS", ar: "فصول كسبتها", fr: "CHAPITRES GAGNÉS" },
+  rewardUnlocked: { en: "STORY CHAPTER UNLOCKED", ar: "فتحت فصل جديد", fr: "CHAPITRE DÉBLOQUÉ" },
+  readReward: { en: "Read your chapter", ar: "اقرأ الفصل", fr: "Lire le chapitre" },
+  keepJourney: { en: "Keep my journey", ar: "كمّل رحلتي", fr: "Garder mon voyage" },
+  restartConfirm: { en: "Begin again?", ar: "تبدأ من جديد؟", fr: "Recommencer ?" },
+  restartWarning: { en: "Your discoveries, clues, and earned chapters will be cleared on this device.", ar: "اكتشافاتك وتلميحاتك والفصول اللي كسبتها هتتمسح من الجهاز ده.", fr: "Vos découvertes, indices et chapitres gagnés seront effacés sur cet appareil." },
+  museumSource: { en: "Museum source", ar: "مصدر المتحف", fr: "Source du musée" },
+  verifiedLocation: { en: "DOCUMENTED DISPLAY LOCATION", ar: "مكان عرض موثّق", fr: "EMPLACEMENT DOCUMENTÉ" },
+  rosettaElsewhere: { en: "The Rosetta Stone is at the British Museum in London, not GEM. This scan is simulated.", ar: "حجر رشيد في المتحف البريطاني في لندن، مش في المتحف المصري الكبير. المسح ده محاكاة.", fr: "La pierre de Rosette est au British Museum à Londres, pas au GEM. Ce scan est simulé." },
 } satisfies Record<string, Record<Lang, string>>;
 
 export type Key = keyof typeof dict;
@@ -300,3 +310,20 @@ const voices: Record<Knowledge, Localized> = {
   Military: { en: "THE GUARD", ar: "الحارس", fr: "LE GARDE" },
 };
 export const storyVoice = (k: Knowledge, lang: Lang) => voices[k][lang];
+
+/** Narrative rewards belong to the fictional settlement, not museum collection claims. */
+export const levelChapters: { level: number; count: number; title: Localized; child: Localized; story: Localized }[] = [
+  { level: 1, count: 0, title: { en: "A voice in the sand", ar: "صوت في الرمل", fr: "Une voix dans le sable" }, child: { en: "A little town is waiting. Your first discovery starts its story.", ar: "مدينة صغيرة مستنياك. أول اكتشاف ليك هيبدأ حكايتها.", fr: "Une petite ville t’attend. Ta première découverte commence son histoire." }, story: { en: "A voice reaches you from the quiet settlement: ‘We are here. Help us remember.’ Your story begins.", ar: "صوت من المدينة الهادية بيناديك: «إحنا هنا. ساعدنا نفتكر.» حكايتك بتبدأ.", fr: "Une voix traverse la cité silencieuse : « Nous sommes ici. Aidez-nous à nous souvenir. » Votre histoire commence." } },
+  { level: 2, count: 1, title: { en: "The first green shoot", ar: "أول نبتة خضرا", fr: "La première pousse" }, child: { en: "Water reaches the plants. A farmer waves. You helped the town grow!", ar: "المية وصلت للزرع. فلاح بيسلّم عليك. إنت ساعدت المدينة تكبر!", fr: "L’eau atteint les plantes. Un cultivateur te salue. Tu as aidé la ville à grandir !" }, story: { en: "Water slips into the first channel. A farmer kneels beside a green shoot: ‘Look. We can begin again.’", ar: "المية بتجري في أول قناة. فلاح بينحني جنب نبتة خضرا: «شوف. نقدر نبدأ تاني.»", fr: "L’eau rejoint le premier canal. Un cultivateur s’agenouille près d’une pousse : « Regardez. Nous pouvons recommencer. »" } },
+  { level: 3, count: 4, title: { en: "The temple speaks", ar: "المعبد بيحكي", fr: "Le temple prend la parole" }, child: { en: "The temple is ready. A writer adds the first words. Now the town can keep its ideas!", ar: "المعبد جاهز. كاتب بيكتب أول كلمات. دلوقتي المدينة تقدر تحتفظ بأفكارها!", fr: "Le temple est prêt. Un scribe écrit les premiers mots. La ville peut garder ses idées !" }, story: { en: "The final inscription catches the light. Beneath the stone roof, a scribe reads aloud. The city has found its voice.", ar: "النور بيلمس آخر نقش. تحت السقف الحجري، كاتب بيقرأ بصوت عالي. المدينة لقت صوتها.", fr: "La dernière inscription capte la lumière. Sous le toit de pierre, un scribe lit à voix haute. La cité trouve sa voix." } },
+  { level: 4, count: 6, title: { en: "Across the river", ar: "على الناحية التانية", fr: "De l’autre côté du fleuve" }, child: { en: "A boat brings things to the market. Neighbors meet and share. Your town is busy!", ar: "مركب جاب حاجات للسوق. الجيران بيتقابلوا ويتبادلوا. مدينتك مليانة حركة!", fr: "Un bateau apporte des objets au marché. Les voisins se rencontrent et échangent. Ta ville s’anime !" }, story: { en: "A sail appears beyond the riverbank. At the market, neighbors make room for new arrivals. Your settlement is becoming a city.", ar: "شراع بيظهر ورا ضفة النهر. في السوق، الجيران بيفسحوا مكان للواصلين. مدينتك بتكبر.", fr: "Une voile apparaît au-delà de la rive. Au marché, les habitants accueillent les nouveaux venus. Votre village devient une cité." } },
+  { level: 5, count: 8, title: { en: "An Egypt of your own", ar: "مصر بإيديك", fr: "Une Égypte à vous" }, child: { en: "Plants, boats, writers, and helpers fill the town. You brought all eight kinds of knowledge back!", ar: "الزرع والمراكب والكتّاب والمساعدين ملوا المدينة. إنت رجّعت كل المعارف التمانية!", fr: "Plantes, bateaux, scribes et voisins remplissent la ville. Tu as retrouvé les huit savoirs !" }, story: { en: "The gates open onto a living city. Every field, inscription, and busy riverboat carries a memory you restored. This Egypt is yours.", ar: "البوابات بتفتح على مدينة حيّة. كل حقل ونقش ومركب فيه ذكرى إنت رجّعتها. دي مصر بتاعتك.", fr: "Les portes s’ouvrent sur une cité vivante. Chaque champ, inscription et bateau porte un souvenir que vous avez retrouvé. Cette Égypte est la vôtre." } },
+];
+
+export function earnedChapters(discoveries: Knowledge[]) {
+  const count = new Set(discoveries).size;
+  return levelChapters.filter((chapter) => chapter.count <= count);
+}
+export function chapterForAge(chapter: typeof levelChapters[number], lang: Lang, age: Age) {
+  return (age === "child" ? chapter.child : chapter.story)[lang];
+}
