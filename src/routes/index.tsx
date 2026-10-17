@@ -57,6 +57,7 @@ function GemExperience() {
   const [scanning, setScanning] = useState(false);
   const [current, setCurrent] = useState<Knowledge>("Agriculture");
   const [scanCount, setScanCount] = useState(0);
+  const [currentAlt, setCurrentAlt] = useState(false);
   const [reaction, setReaction] = useState<Knowledge | null>(null);
   const [templeOpen, setTempleOpen] = useState(false);
   const [clues, setClues] = useState<Partial<Record<Knowledge, number>>>({});
@@ -107,6 +108,8 @@ function GemExperience() {
   const L: Lang = lang ?? "en";
   const decoded = lang !== null;
   const need = ORDER.find((k) => !discoveries.includes(k)) ?? null;
+  const scanTarget = need ?? ORDER[scanCount % ORDER.length] ?? "Agriculture";
+  const scanAlt = !need && Math.floor(scanCount / ORDER.length) % 2 === 1;
   const progress = Math.round((discoveries.length / ORDER.length) * 100);
   const ctx = { L, decoded, age: age ?? "adult" };
 
@@ -132,17 +135,18 @@ function GemExperience() {
     body = <AgePick ctx={ctx} onPick={(a) => { setAge(a); setView("city"); }} />;
   } else if (view === "scan") {
     body = (
-      <ScanScreen ctx={ctx} target={need ?? ORDER[discoveries.length % ORDER.length] ?? "Agriculture"} alt={!need && (scanCount + 1) % 2 === 1} scanning={scanning} onBack={() => setView("city")} onScan={() => {
+      <ScanScreen ctx={ctx} target={scanTarget} alt={scanAlt} scanning={scanning} onBack={() => setView("city")} onScan={() => {
         playScan();
         setScanCount((c) => c + 1);
-        setCurrent(need ?? ORDER[discoveries.length % ORDER.length] ?? "Agriculture");
+        setCurrent(scanTarget);
+        setCurrentAlt(scanAlt);
         setScanning(true);
         window.setTimeout(() => { setScanning(false); setView("artifact"); }, 1200);
       }} />
     );
   } else if (view === "artifact") {
     body = (
-      <ArtifactReveal ctx={ctx} k={current} alt={!need && scanCount % 2 === 1} restored={discoveries.includes(current)}
+      <ArtifactReveal ctx={ctx} k={current} alt={currentAlt} restored={discoveries.includes(current)}
         onRestore={() => { playRestore(); setDiscoveries((d) => (d.includes(current) ? d : [...d, current])); }}
         onChanged={() => { playReact(); setReaction(current); setView("city"); }} />
     );
