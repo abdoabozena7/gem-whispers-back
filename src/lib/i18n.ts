@@ -82,6 +82,8 @@ const dict = {
   restartWarning: { en: "Your discoveries, clues, and earned chapters will be cleared on this device.", ar: "اكتشافاتك وتلميحاتك والفصول اللي كسبتها هتتمسح من الجهاز ده.", fr: "Vos découvertes, indices et chapitres gagnés seront effacés sur cet appareil." },
   museumSource: { en: "Museum source", ar: "مصدر المتحف", fr: "Source du musée" },
   verifiedLocation: { en: "DOCUMENTED DISPLAY LOCATION", ar: "مكان عرض موثّق", fr: "EMPLACEMENT DOCUMENTÉ" },
+  tutankhamunGalleries: { en: "Tutankhamun Galleries", ar: "قاعات توت عنخ آمون", fr: "Galeries de Toutânkhamon" },
+  locationScope: { en: "GEM identifies the exhibition area, not a case or room number. Ask a guide to confirm today’s display.", ar: "المتحف موثّق قاعات العرض، مش رقم فاترينة أو غرفة. اسأل مرشد يأكّد مكان العرض النهارده.", fr: "Le GEM indique la zone d’exposition, pas une vitrine ou une salle précise. Un guide peut confirmer l’exposition du jour." },
   rosettaElsewhere: { en: "The Rosetta Stone is at the British Museum in London, not GEM. This scan is simulated.", ar: "حجر رشيد في المتحف البريطاني في لندن، مش في المتحف المصري الكبير. المسح ده محاكاة.", fr: "La pierre de Rosette est au British Museum à Londres, pas au GEM. Ce scan est simulé." },
 } satisfies Record<string, Record<Lang, string>>;
 
@@ -323,6 +325,9 @@ export const levelChapters: { level: number; count: number; title: Localized; ch
 export function earnedChapters(discoveries: Knowledge[]) {
   const count = new Set(discoveries).size;
   return levelChapters.filter((chapter) => chapter.count <= count);
+}
+export function chapterAtLevel(level: number) {
+  return levelChapters.find((chapter) => chapter.level === level);
 }
 export function chapterForAge(chapter: typeof levelChapters[number], lang: Lang, age: Age) {
   return (age === "child" ? chapter.child : chapter.story)[lang];

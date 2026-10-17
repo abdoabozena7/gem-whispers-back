@@ -11,11 +11,12 @@ import { JourneyMenu } from "@/components/JourneyMenu";
 import { RewardChapters } from "@/components/RewardChapters";
 import { getRiddle } from "@/lib/ai/riddle.functions";
 import {
-  artifactAlt, artifactText, artifactDetailForAge, hintsForAge, identityForAge, problemForAge, reactionForAge, knowledgeName, LANGS, toGlyphs, tr, civilizationLevel, civilizationStage, storyVoice, earnedChapters,
+  artifactAlt, artifactText, artifactDetailForAge, hintsForAge, identityForAge, problemForAge, reactionForAge, knowledgeName, LANGS, toGlyphs, tr, civilizationLevel, civilizationStage, storyVoice, chapterAtLevel,
   type Age, type Key, type Knowledge, type Lang,
 } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { nextHintLevel } from "@/lib/hint-levels";
+import { museumLocation } from "@/lib/museum-locations";
 import { playDecode, playReact, playRestore, playScan, playTemple } from "@/lib/sounds";
 
 const CityScene3D = lazy(() => import("@/components/CityScene3D"));
@@ -230,7 +231,7 @@ function Rosetta({ onPick, picked }: { onPick: (l: Lang) => void; picked: Lang |
       </div>
       <p className="eyebrow">{picked ? tr("decoded", picked) : "𓂀 ⲗⲟⲅⲟⲥ · ΛΟΓΟΣ"}</p>
       <h1>{picked ? tr("rosetta", picked) : <span className="glyph-text">{toGlyphs("Rosetta Stone")}</span>}</h1>
-      {picked ? <p className="artifact-detail">{tr("rosettaDetail", picked)}</p> : (
+      {picked ? <div className="artifact-detail"><p>{tr("rosettaDetail", picked)}</p><p>{tr("rosettaElsewhere", picked)}</p></div> : (
         <div className="lang-grid">
           {LANGS.map((l) => <button key={l.id} className="lang-option" onClick={() => onPick(l.id)}>{l.native}</button>)}
         </div>
@@ -258,7 +259,7 @@ function ScanScreen({ ctx, target, alt, rosetta, scanning, onBack, onScan }: { c
         <span><T k={scanning ? "reading" : "frame"} ctx={ctx} /></span>
       </div>
       <div className="focus-footer">
-        {target && <MuseumGuidance k={target} alt={alt} L={ctx.L} age={ctx.age} />}
+        {target && <MuseumGuidance k={target} alt={alt ?? false} L={ctx.L} age={ctx.age} />}
         {rosetta && ctx.decoded && <p>{tr("rosettaElsewhere", ctx.L)}</p>}
         <p><T k="museumHolds" ctx={ctx} /></p>
         <Button variant="discovery" size="museum" className="w-full" disabled={scanning} onClick={onScan}>
@@ -292,7 +293,7 @@ function ArtifactReveal({ ctx, k, alt, restored, onRestore, onChanged }: { ctx: 
 
 function ReactionBanner({ L, age, k, count, onReward }: { L: Lang; age: Age; k: Knowledge; count: number; onReward: () => void }) {
   const evolved = civilizationLevel(count) > civilizationLevel(count - 1);
-  const chapter = earnedChapters(["Agriculture", "Religion", "Architecture", "Writing", "Government", "Trade", "Medicine", "Military"].slice(0, count) as Knowledge[]).at(-1);
+  const chapter = chapterAtLevel(civilizationLevel(count));
   return (
     <div className="reaction-banner" role="status">
       <Sparkles /><small>{tr(evolved ? "levelUp" : "inAction", L, age)}</small><strong>{evolved ? `${tr("level", L)} ${civilizationLevel(count)} · ${civilizationStage(count, L)}` : knowledgeName[k][L]}</strong>
@@ -393,7 +394,10 @@ function MemoryScreen({ ctx, discoveries, onBack, onReset }: { ctx: { L: Lang; a
 }
 
 function MuseumGuidance({ k, alt, L, age }: { k: Knowledge; alt?: boolean; L: Lang; age: Age }) {
-  return <section className="museum-guidance" aria-label={tr("museumHelp", L)}><small><MapPin />{tr("museumHelp", L)}</small><h2>{(alt ? artifactAlt[k] : artifactText[k]).name[L]}</h2><p>{tr(age === "child" ? "childLocation" : "locationUnverified", L)}</p><blockquote>{tr("guideQuestion", L)}</blockquote></section>;
+  const location = museumLocation(k, alt ?? false);
+  return <section className="museum-guidance" aria-label={tr("museumHelp", L)}><small><MapPin />{tr(location ? "verifiedLocation" : "museumHelp", L)}</small><h2>{(alt ? artifactAlt[k] : artifactText[k]).name[L]}</h2>
+    {location ? <><strong>{tr(location.area, L)} · {location.accession}</strong><p>{tr("locationScope", L, age)}</p><Button asChild variant="link" className="museum-source"><a href={location.source} target="_blank" rel="noopener noreferrer">{tr("museumSource", L)}<ChevronRight /></a></Button></> : <><p>{tr(age === "child" ? "childLocation" : "locationUnverified", L)}</p><blockquote>{tr("guideQuestion", L)}</blockquote></>}
+  </section>;
 }
 
 function TempleSheet({ L, age, discoveries, onClose, onDiscover }: { L: Lang; age: Age; discoveries: Knowledge[]; onClose: () => void; onDiscover: () => void }) {
