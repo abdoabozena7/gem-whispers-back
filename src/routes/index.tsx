@@ -7,13 +7,16 @@ import {
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { JourneyMenu } from "@/components/JourneyMenu";
+import { RewardChapters } from "@/components/RewardChapters";
 import { getRiddle } from "@/lib/ai/riddle.functions";
 import {
-  artifactAlt, artifactText, artifactDetailForAge, hintsForAge, identityForAge, problemForAge, reactionForAge, knowledgeName, LANGS, toGlyphs, tr, civilizationLevel, civilizationStage, storyVoice,
+  artifactAlt, artifactText, artifactDetailForAge, hintsForAge, identityForAge, problemForAge, reactionForAge, knowledgeName, LANGS, toGlyphs, tr, civilizationLevel, civilizationStage, storyVoice, chapterAtLevel,
   type Age, type Key, type Knowledge, type Lang,
 } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { nextHintLevel } from "@/lib/hint-levels";
+import { museumLocation } from "@/lib/museum-locations";
 import { playDecode, playReact, playRestore, playScan, playTemple } from "@/lib/sounds";
 
 const CityScene3D = lazy(() => import("@/components/CityScene3D"));
@@ -54,6 +57,7 @@ function GemExperience() {
   const [scanning, setScanning] = useState(false);
   const [current, setCurrent] = useState<Knowledge>("Agriculture");
   const [scanCount, setScanCount] = useState(0);
+  const [currentAlt, setCurrentAlt] = useState(false);
   const [reaction, setReaction] = useState<Knowledge | null>(null);
   const [templeOpen, setTempleOpen] = useState(false);
   const [clues, setClues] = useState<Partial<Record<Knowledge, number>>>({});
@@ -104,12 +108,14 @@ function GemExperience() {
   const L: Lang = lang ?? "en";
   const decoded = lang !== null;
   const need = ORDER.find((k) => !discoveries.includes(k)) ?? null;
+  const scanTarget = need ?? ORDER[scanCount % ORDER.length] ?? "Agriculture";
+  const scanAlt = !need && Math.floor(scanCount / ORDER.length) % 2 === 1;
   const progress = Math.round((discoveries.length / ORDER.length) * 100);
   const ctx = { L, decoded, age: age ?? "adult" };
 
   const reset = () => {
-    localStorage.removeItem(STORAGE);
-    setDiscoveries([]); setClues({}); setLang(null); setAge(null); setReaction(null); templeFanfared.current = false; setView("locked");
+    try { localStorage.removeItem(STORAGE); } catch { /* resetting still works without storage */ }
+    setDiscoveries([]); setClues({}); setLang(null); setAge(null); setReaction(null); setWelcome(false); setTempleOpen(false); setScanning(false); setScanCount(0); templeFanfared.current = false; setView("locked");
   };
 
   let body;
@@ -117,7 +123,7 @@ function GemExperience() {
     body = <Locked ctx={ctx} onScan={() => setView("rosettaScan")} />;
   } else if (view === "rosettaScan") {
     body = (
-      <ScanScreen ctx={ctx} scanning={scanning} onBack={() => setView("locked")} onScan={() => {
+      <ScanScreen ctx={ctx} rosetta scanning={scanning} onBack={() => setView("locked")} onScan={() => {
         playScan();
         setScanning(true);
         window.setTimeout(() => { setScanning(false); setView("rosetta"); }, 1400);
@@ -129,17 +135,18 @@ function GemExperience() {
     body = <AgePick ctx={ctx} onPick={(a) => { setAge(a); setView("city"); }} />;
   } else if (view === "scan") {
     body = (
-      <ScanScreen ctx={ctx} scanning={scanning} onBack={() => setView("city")} onScan={() => {
+      <ScanScreen ctx={ctx} target={scanTarget} alt={scanAlt} scanning={scanning} onBack={() => setView("city")} onScan={() => {
         playScan();
         setScanCount((c) => c + 1);
-        setCurrent(need ?? ORDER[discoveries.length % ORDER.length] ?? "Agriculture");
+        setCurrent(scanTarget);
+        setCurrentAlt(scanAlt);
         setScanning(true);
         window.setTimeout(() => { setScanning(false); setView("artifact"); }, 1200);
       }} />
     );
   } else if (view === "artifact") {
     body = (
-      <ArtifactReveal ctx={ctx} k={current} alt={!need && scanCount % 2 === 1} restored={discoveries.includes(current)}
+      <ArtifactReveal ctx={ctx} k={current} alt={currentAlt} restored={discoveries.includes(current)}
         onRestore={() => { playRestore(); setDiscoveries((d) => (d.includes(current) ? d : [...d, current])); }}
         onChanged={() => { playReact(); setReaction(current); setView("city"); }} />
     );
@@ -157,7 +164,7 @@ function GemExperience() {
         </header>
         <div className="city-stage-wrap">
           <LivingCity discoveries={discoveries} focus={reaction} onTemple={() => setTempleOpen(true)} />
-          {reaction && <><div className="restoration-flash" aria-hidden="true" /><ReactionBanner L={L} age={ctx.age} k={reaction} count={discoveries.length} /></>}
+           {reaction && <><div className="restoration-flash" aria-hidden="true" /><ReactionBanner L={L} age={ctx.age} k={reaction} count={discoveries.length} onReward={() => setView("memory")} /></>}
           {welcome && !reaction && <div className="welcome-toast">{tr("welcomeBack", L, ctx.age)}</div>}
         </div>
         <section className="city-actions">
@@ -228,7 +235,7 @@ function Rosetta({ onPick, picked }: { onPick: (l: Lang) => void; picked: Lang |
       </div>
       <p className="eyebrow">{picked ? tr("decoded", picked) : "𓂀 ⲗⲟⲅⲟⲥ · ΛΟΓΟΣ"}</p>
       <h1>{picked ? tr("rosetta", picked) : <span className="glyph-text">{toGlyphs("Rosetta Stone")}</span>}</h1>
-      {picked ? <p className="artifact-detail">{tr("rosettaDetail", picked)}</p> : (
+      {picked ? <div className="artifact-detail"><p>{tr("rosettaDetail", picked)}</p><p>{tr("rosettaElsewhere", picked)}</p></div> : (
         <div className="lang-grid">
           {LANGS.map((l) => <button key={l.id} className="lang-option" onClick={() => onPick(l.id)}>{l.native}</button>)}
         </div>
@@ -247,7 +254,7 @@ function AgePick({ ctx, onPick }: { ctx: { L: Lang; decoded: boolean; age: Age }
   );
 }
 
-function ScanScreen({ ctx, scanning, onBack, onScan }: { ctx: { L: Lang; decoded: boolean; age: Age }; scanning: boolean; onBack: () => void; onScan: () => void }) {
+function ScanScreen({ ctx, target, alt, rosetta, scanning, onBack, onScan }: { ctx: { L: Lang; decoded: boolean; age: Age }; target?: Knowledge; alt?: boolean; rosetta?: boolean; scanning: boolean; onBack: () => void; onScan: () => void }) {
   return (
     <main className="focus-screen scan-screen">
       <header className="top-bar"><button onClick={onBack} aria-label="Back"><ArrowLeft /></button><strong><T k="discovery" ctx={ctx} /></strong><span /></header>
@@ -256,6 +263,8 @@ function ScanScreen({ ctx, scanning, onBack, onScan }: { ctx: { L: Lang; decoded
         <span><T k={scanning ? "reading" : "frame"} ctx={ctx} /></span>
       </div>
       <div className="focus-footer">
+        {target && <MuseumGuidance k={target} alt={alt ?? false} L={ctx.L} age={ctx.age} />}
+        {rosetta && ctx.decoded && <p>{tr("rosettaElsewhere", ctx.L)}</p>}
         <p><T k="museumHolds" ctx={ctx} /></p>
         <Button variant="discovery" size="museum" className="w-full" disabled={scanning} onClick={onScan}>
           {ctx.decoded ? tr("simulate", ctx.L, ctx.age) : "SCAN"}
@@ -286,12 +295,14 @@ function ArtifactReveal({ ctx, k, alt, restored, onRestore, onChanged }: { ctx: 
   );
 }
 
-function ReactionBanner({ L, age, k, count }: { L: Lang; age: Age; k: Knowledge; count: number }) {
+function ReactionBanner({ L, age, k, count, onReward }: { L: Lang; age: Age; k: Knowledge; count: number; onReward: () => void }) {
   const evolved = civilizationLevel(count) > civilizationLevel(count - 1);
+  const chapter = chapterAtLevel(civilizationLevel(count));
   return (
     <div className="reaction-banner" role="status">
       <Sparkles /><small>{tr(evolved ? "levelUp" : "inAction", L, age)}</small><strong>{evolved ? `${tr("level", L)} ${civilizationLevel(count)} · ${civilizationStage(count, L)}` : knowledgeName[k][L]}</strong>
       <p>{reactionForAge(k, L, age)}</p>
+       {evolved && chapter && <div className="level-reward"><small>{tr("rewardUnlocked", L)}</small><strong>{chapter.title[L]}</strong><Button variant="quiet" onClick={onReward}>{tr("readReward", L)}<ChevronRight /></Button></div>}
     </div>
   );
 }
@@ -353,7 +364,7 @@ function NeedScreen({ ctx, need, age, revealed, onReveal, onBack, onDiscover }: 
         <Button variant="outline" className="hint-button" onClick={askHint}><Lightbulb /> {tr(hints.length ? "nextHint" : "hint", L, age)} · {level}/3</Button>
       )}
       <Button variant="quiet" className="location-button" onClick={() => setLocationOpen((open) => !open)} aria-expanded={locationOpen}><MapPin />{tr("whereLook", L)}<ChevronRight /></Button>
-      {locationOpen && <section className="museum-guidance" aria-label={tr("museumHelp", L)}><small><MapPin />{tr("museumHelp", L)}</small><h2>{artifactText[need].name[L]}</h2><p>{tr(age === "child" ? "childLocation" : "locationUnverified", L)}</p><blockquote>{tr("guideQuestion", L)}</blockquote></section>}
+      {locationOpen && <MuseumGuidance k={need} L={L} age={age} />}
       <Button variant="discovery" size="museum" className="w-full" onClick={onDiscover}><ScanLine /> {tr("startDiscovery", L, ctx.age)}</Button>
     </main>
   );
@@ -370,10 +381,11 @@ function MemoryScreen({ ctx, discoveries, onBack, onReset }: { ctx: { L: Lang; a
   const identity = identityForAge(discoveries, L, ctx.age);
   return (
     <main className="focus-screen memory-screen">
-      <header className="top-bar"><button onClick={onBack} aria-label="Back"><ArrowLeft /></button><strong>{tr("myEgypt", L, ctx.age)}</strong><span /></header>
+      <header className="top-bar"><Button variant="ghost" size="icon" onClick={onBack} aria-label="Back"><ArrowLeft /></Button><strong>{tr("myEgypt", L, ctx.age)}</strong><JourneyMenu count={new Set(discoveries).size} L={L} age={ctx.age} onRestart={onReset} /></header>
       <div className="memory-preview"><LivingCity discoveries={discoveries} still /></div>
       <div className="memory-progress"><strong>{progress}%</strong><span>{tr("knowledgeRestored", L, ctx.age)}</span><div><i style={{ width: `${progress}%` }} /></div></div>
       <div className="memory-level"><Crown /><strong>{tr("level", L)} {civilizationLevel(discoveries.length)}</strong><span>{civilizationStage(discoveries.length, L)}</span></div>
+      <RewardChapters discoveries={discoveries} L={L} age={ctx.age} />
       <ol className="discovery-trail" aria-label={tr("journey", L)}>{ORDER.map((k, i) => { const Icon = icons[k]; const found = discoveries.includes(k); const next = ORDER.find((entry) => !discoveries.includes(entry)) === k; return <li key={k} className={cn(found && "is-found", next && "is-next")}><span>{found ? <Check /> : <Icon />}</span><div><small>{tr("chapter", L)} {i + 1}</small><strong>{found ? artifactText[k].name[L] : next ? tr("nextDiscovery", L) : toGlyphs(k)}</strong></div></li>; })}</ol>
       <div className="memory-metrics">
         <span><strong>{discoveries.length}</strong><small>{tr("artifacts", L, ctx.age)}</small></span>
@@ -381,9 +393,15 @@ function MemoryScreen({ ctx, discoveries, onBack, onReset }: { ctx: { L: Lang; a
         <span><strong>{Math.floor(discoveries.length / 2)}</strong><small>{tr("structures", L, ctx.age)}</small></span>
       </div>
       <div className="identity"><small>{tr("identity", L, ctx.age)}</small><h1>{identity}</h1><p>{tr("shaped", L, ctx.age)}</p></div>
-      <button className="reset-link" onClick={onReset}>{tr("restart", L, ctx.age)}</button>
     </main>
   );
+}
+
+function MuseumGuidance({ k, alt, L, age }: { k: Knowledge; alt?: boolean; L: Lang; age: Age }) {
+  const location = museumLocation(k, alt ?? false);
+  return <section className="museum-guidance" aria-label={tr("museumHelp", L)}><small><MapPin />{tr(location ? "verifiedLocation" : "museumHelp", L)}</small><h2>{(alt ? artifactAlt[k] : artifactText[k]).name[L]}</h2>
+    {location ? <><strong>{tr(location.area, L)} · {location.accession}</strong><p>{tr("locationScope", L, age)}</p><Button asChild variant="link" className="museum-source"><a href={location.source} target="_blank" rel="noopener noreferrer">{tr("museumSource", L)}<ChevronRight /></a></Button></> : <><p>{tr(age === "child" ? "childLocation" : "locationUnverified", L)}</p><blockquote>{tr("guideQuestion", L)}</blockquote></>}
+  </section>;
 }
 
 function TempleSheet({ L, age, discoveries, onClose, onDiscover }: { L: Lang; age: Age; discoveries: Knowledge[]; onClose: () => void; onDiscover: () => void }) {

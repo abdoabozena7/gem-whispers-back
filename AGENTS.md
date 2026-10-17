@@ -20,3 +20,6 @@
 - Imported city props are cloned and normalized per instance inside scene-local Suspense boundaries so model loading does not blank the city.
 - Derive civilization levels from unique restored knowledge and use the same resolver everywhere so levels remain consistent with saved discoveries.
 - Persist revealed clue counts with the local journey and keep museum location guidance deterministic and explicitly unverified until curator-confirmed locations exist.
+- Match museum locations by identified object and official collection evidence, including source and accession; area-level evidence must never imply a room, case, or live availability.
+- Derive earned story chapters from unique discoveries without changing discovery progress; localized rewards remain available in My Egypt so visitors never lose a milestone.
+- Use a modal bottom menu for journey controls with an explicit restart confirmation to protect local progress and preserve one-handed access.
