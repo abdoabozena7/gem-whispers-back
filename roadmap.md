@@ -1,4 +1,7 @@
 # GEM improvements
+- [ ] Verify real artifact locations and add truthful guidance directly to scanning.
+- [ ] Unlock a localized story reward at every civilization level.
+- [ ] Add a My Egypt mobile menu with level, progress, and confirmed restart; verify the journey.
 - [x] Add civilization levels, a truthful progress display, cinematic transitions, and discovery celebrations.
 - [x] Keep revealed clues across navigation and provide honest museum search guidance.
 - [x] Improve age-matched cinematic narration and verify the journey on phone and desktop.
